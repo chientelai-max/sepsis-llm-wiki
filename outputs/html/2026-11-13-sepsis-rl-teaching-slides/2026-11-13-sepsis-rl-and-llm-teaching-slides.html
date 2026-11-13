@@ -1,0 +1,3850 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>敗血症強化學習（Sepsis RL）知識圖譜與臨床決策解析｜汪博士 34 頁 Graph 旗艦版</title>
+  <style>
+    :root {
+      --bg-washi: #FAF6F0;
+      --bg-card: #FFFFFF;
+      --bg-soft: #F3EDE2;
+      --ink-main: #2C302E;
+      --ink-sub: #5A605D;
+      --ink-muted: #888E8B;
+      --border-washi: #E2D9C8;
+
+      /* Stage 3 視覺語意規範：5 大節點色票 */
+      --obs-bg: #EBF3ED;
+      --obs-border: #4A7C59;
+      --obs-text: #274B32;
+
+      --mod-bg: #FDF3E7;
+      --mod-border: #D9822B;
+      --mod-text: #7D440D;
+
+      --act-bg: #EBF2F7;
+      --act-border: #3B6E8C;
+      --act-text: #1E445C;
+
+      --rew-bg: #F3EFF7;
+      --rew-border: #7A5C91;
+      --rew-text: #462F59;
+
+      --pit-bg: #FBECE9;
+      --pit-border: #C85A48;
+      --pit-text: #7A2619;
+
+      --shadow-soft: 0 4px 18px rgba(44, 48, 46, 0.06);
+      --shadow-hover: 0 8px 26px rgba(74, 124, 89, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "PingFang TC", "Noto Sans TC", "Hiragino Sans", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg-washi);
+      background-image:
+        radial-gradient(rgba(74, 124, 89, 0.05) 1px, transparent 1px),
+        radial-gradient(rgba(217, 130, 43, 0.04) 1px, var(--bg-washi) 1px);
+      background-size: 28px 28px;
+      background-position: 0 0, 14px 14px;
+      color: var(--ink-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部章節導覽列 */
+    header.top-nav {
+      height: 54px;
+      background: rgba(250, 246, 240, 0.96);
+      border-bottom: 1.5px solid var(--border-washi);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--obs-text);
+      white-space: nowrap;
+    }
+
+    .brand-badge {
+      background: var(--obs-border);
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+    }
+
+    .chapter-pills {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding: 3px 0;
+      scrollbar-width: none;
+    }
+    .chapter-pills::-webkit-scrollbar { display: none; }
+
+    .chap-btn {
+      border: 1px solid var(--border-washi);
+      background: var(--bg-card);
+      color: var(--ink-sub);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .chap-btn:hover {
+      border-color: var(--obs-border);
+      color: var(--obs-text);
+      background: var(--obs-bg);
+    }
+    .chap-btn.active {
+      background: var(--obs-border);
+      color: #fff;
+      border-color: var(--obs-border);
+    }
+    .chap-btn.graph-hub {
+      background: var(--mod-bg);
+      border-color: var(--mod-border);
+      color: var(--mod-text);
+    }
+    .chap-btn.graph-hub.active {
+      background: var(--mod-border);
+      color: #fff;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .grid-btn {
+      background: var(--bg-soft);
+      border: 1px solid var(--border-washi);
+      color: var(--ink-main);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .grid-btn:hover {
+      background: var(--mod-bg);
+      border-color: var(--mod-border);
+    }
+
+    /* 主投影片舞台 */
+    main.deck-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+    }
+
+    section.slide {
+      display: none;
+      width: 100%;
+      max-width: 1460px;
+      height: 100%;
+      max-height: 830px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid var(--border-washi);
+      border-radius: 18px;
+      box-shadow: var(--shadow-soft);
+      padding: 18px 26px;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      position: relative;
+      animation: fadeSlide 0.24s ease-out;
+    }
+
+    section.slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tier 2 跨論文定位麵包屑列 (Graph Breadcrumb Locator) */
+    .graph-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-washi);
+      border-radius: 10px;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .gb-label {
+      font-weight: 800;
+      color: var(--obs-text);
+      background: var(--obs-bg);
+      border: 1px solid var(--obs-border);
+      padding: 1px 7px;
+      border-radius: 6px;
+    }
+    .gb-node {
+      background: #fff;
+      border: 1px solid var(--border-washi);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--ink-sub);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .gb-node:hover {
+      border-color: var(--mod-border);
+      color: var(--mod-text);
+      background: var(--mod-bg);
+    }
+    .gb-curr {
+      background: var(--mod-bg);
+      border: 1.5px solid var(--mod-border);
+      color: var(--mod-text);
+      font-weight: 800;
+      padding: 2px 9px;
+      border-radius: 6px;
+    }
+    .gb-edge {
+      color: var(--ink-muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    /* 投影片標頭 */
+    .slide-header {
+      border-bottom: 1.5px solid var(--border-washi);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .slide-kicker {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--obs-border);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slide-title {
+      font-size: 1.32rem;
+      font-weight: 800;
+      color: var(--ink-main);
+      line-height: 1.25;
+    }
+    .slide-tag-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .pill-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .pill-obs { background: var(--obs-bg); color: var(--obs-text); border-color: var(--obs-border); }
+    .pill-mod { background: var(--mod-bg); color: var(--mod-text); border-color: var(--mod-border); }
+    .pill-act { background: var(--act-bg); color: var(--act-text); border-color: var(--act-border); }
+    .pill-rew { background: var(--rew-bg); color: var(--rew-text); border-color: var(--rew-border); }
+    .pill-pit { background: var(--pit-bg); color: var(--pit-text); border-color: var(--pit-border); }
+
+    /* 版面網格系統 */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      flex: 1;
+      align-items: stretch;
+    }
+    .grid-left-wide {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      flex: 1;
+      align-items: stretch;
+    }
+    .grid-right-wide {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 14px;
+      flex: 1;
+      align-items: stretch;
+    }
+    .grid-3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      flex: 1;
+    }
+
+    /* 日式和紙卡片 */
+    .washi-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-washi);
+      border-radius: 14px;
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(44, 48, 46, 0.03);
+    }
+    .washi-card.soft {
+      background: var(--bg-washi);
+    }
+    .card-h {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--ink-main);
+      border-left: 4px solid var(--obs-border);
+      padding-left: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-h.mod { border-left-color: var(--mod-border); }
+    .card-h.act { border-left-color: var(--act-border); }
+    .card-h.rew { border-left-color: var(--rew-border); }
+    .card-h.pit { border-left-color: var(--pit-border); }
+
+    /* ==========================================================
+       Stage 3 視覺語意規範：Graph 節點與有向邊元件 (DAG Canvas)
+       ========================================================== */
+    .dag-canvas {
+      background: #FCF9F4;
+      border: 1.5px dashed #D5CBB8;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: center;
+      position: relative;
+      flex: 1;
+    }
+    .dag-title {
+      font-size: 0.76rem;
+      font-weight: 800;
+      color: var(--ink-sub);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-washi);
+      padding-bottom: 4px;
+      margin-bottom: 2px;
+    }
+
+    .dag-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .dag-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    /* 5 大標準語意節點 (Nodes) */
+    .g-node {
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-size: 0.78rem;
+      line-height: 1.38;
+      border: 2px solid var(--border-washi);
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      width: 100%;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .g-node:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+    .g-node .n-tag {
+      display: inline-block;
+      font-size: 0.66rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+    .g-node .n-title {
+      font-weight: 800;
+      font-size: 0.82rem;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .g-node .n-desc {
+      font-size: 0.73rem;
+      color: var(--ink-sub);
+    }
+
+    /* 🟢 臨床觀測與收案節點 (Observation / Cohort) */
+    .g-node.obs {
+      background: var(--obs-bg);
+      border-color: var(--obs-border);
+      color: var(--obs-text);
+    }
+    .g-node.obs .n-tag { background: var(--obs-border); color: #fff; }
+
+    /* 🟠 特徵編碼與 AI 模型節點 (Encoder / RL Agent) */
+    .g-node.mod {
+      background: var(--mod-bg);
+      border-color: var(--mod-border);
+      color: var(--mod-text);
+    }
+    .g-node.mod .n-tag { background: var(--mod-border); color: #fff; }
+
+    /* 🔵 動作處方與評估結果節點 (Action / OPE Outcome) */
+    .g-node.act {
+      background: var(--act-bg);
+      border-color: var(--act-border);
+      color: var(--act-text);
+    }
+    .g-node.act .n-tag { background: var(--act-border); color: #fff; }
+
+    /* 🟣 獎勵塑形與專家知識節點 (Reward / Prior Guardrail) */
+    .g-node.rew {
+      background: var(--rew-bg);
+      border-color: var(--rew-border);
+      color: var(--rew-text);
+    }
+    .g-node.rew .n-tag { background: var(--rew-border); color: #fff; }
+
+    /* 🔴 因果偏誤與方法學陷阱節點 (Confounder / Pitfall) */
+    .g-node.pit {
+      background: var(--pit-bg);
+      border-color: var(--pit-border);
+      color: var(--pit-text);
+    }
+    .g-node.pit .n-tag { background: var(--pit-border); color: #fff; }
+
+    /* 4 種有向邊 (Directed Edges) */
+    .g-edge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.69rem;
+      font-weight: 700;
+      padding: 2px 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .g-edge .e-label {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border-washi);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.67rem;
+      margin-bottom: 1px;
+    }
+    .g-edge.data { color: #4A453E; }
+    .g-edge.data .e-arrow { font-size: 1rem; font-weight: 900; color: #4A453E; }
+
+    .g-edge.causal { color: var(--obs-text); }
+    .g-edge.causal .e-label { border-color: var(--obs-border); background: var(--obs-bg); color: var(--obs-text); }
+    .g-edge.causal .e-arrow { font-size: 1.05rem; font-weight: 900; color: var(--obs-border); }
+
+    .g-edge.reward { color: var(--mod-text); }
+    .g-edge.reward .e-label { border-style: dashed; border-color: var(--mod-border); background: var(--mod-bg); color: var(--mod-text); }
+    .g-edge.reward .e-arrow { font-size: 1rem; font-weight: 900; color: var(--mod-border); }
+
+    .g-edge.bias { color: var(--pit-text); }
+    .g-edge.bias .e-label { border-color: var(--pit-border); background: var(--pit-bg); color: var(--pit-text); font-weight: 800; }
+    .g-edge.bias .e-arrow { font-size: 1rem; font-weight: 900; color: var(--pit-border); }
+
+    /* 表格樣式 */
+    table.jp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-washi);
+    }
+    table.jp-table th {
+      background: var(--bg-soft);
+      color: var(--ink-main);
+      font-weight: 800;
+      text-align: left;
+      padding: 6px 9px;
+      border-bottom: 1.5px solid var(--border-washi);
+    }
+    table.jp-table td {
+      padding: 6px 9px;
+      border-bottom: 1px solid #EFEAE0;
+      color: var(--ink-sub);
+      vertical-align: top;
+    }
+    table.jp-table tr.highlight-row td {
+      background: var(--obs-bg);
+      color: var(--obs-text);
+      font-weight: 700;
+    }
+    table.jp-table tr.pitfall-row td {
+      background: var(--pit-bg);
+      color: var(--pit-text);
+      font-weight: 700;
+    }
+
+    /* 汪博士教學提醒與批判框 */
+    .dr-wang-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #FDF7EC 0%, #F4EFE4 100%);
+      border: 1.5px solid var(--mod-border);
+      border-radius: 14px;
+      padding: 9px 14px;
+      margin-top: 4px;
+    }
+    .dr-wang-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--mod-border);
+      flex-shrink: 0;
+      background: #fff;
+    }
+    .dr-wang-content {
+      font-size: 0.76rem;
+      line-height: 1.42;
+      color: var(--ink-main);
+      flex: 1;
+    }
+    .dr-wang-title {
+      font-weight: 800;
+      color: var(--mod-text);
+      font-size: 0.81rem;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* MDP 五元組迷你列表 */
+    .mdp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.76rem;
+    }
+    .mdp-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: var(--bg-washi);
+      border: 1px solid var(--border-washi);
+      border-radius: 8px;
+      padding: 6px 9px;
+    }
+    .mdp-sym {
+      font-weight: 900;
+      font-family: "Georgia", serif;
+      background: var(--mod-border);
+      color: #fff;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    /* Slide 02 互動式全域知識圖譜專屬樣式 */
+    .interactive-map-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .map-filter-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-washi);
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-chip.active, .filter-chip:hover {
+      background: var(--obs-border);
+      color: #fff;
+      border-color: var(--obs-border);
+    }
+    .paper-graph-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      flex: 1;
+    }
+    .paper-node-card {
+      border-radius: 12px;
+      padding: 9px 12px;
+      border: 2px solid var(--border-washi);
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .paper-node-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--mod-border);
+    }
+    .paper-node-card.dimmed {
+      opacity: 0.28;
+      filter: grayscale(60%);
+    }
+    .pnc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .pnc-id {
+      font-size: 0.72rem;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--obs-border);
+      color: #fff;
+    }
+    .pnc-jump {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--mod-text);
+      background: var(--mod-bg);
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--mod-border);
+    }
+
+    /* 底部頁碼與控制列 */
+    footer.bottom-bar {
+      height: 44px;
+      background: rgba(250, 246, 240, 0.96);
+      border-top: 1.5px solid var(--border-washi);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 0.78rem;
+      flex-shrink: 0;
+    }
+    .legend-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .leg-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .ctrl-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ctrl-btn {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-washi);
+      color: var(--ink-main);
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.76rem;
+      cursor: pointer;
+    }
+    .ctrl-btn:hover {
+      background: var(--obs-bg);
+      border-color: var(--obs-border);
+      color: var(--obs-text);
+    }
+
+    /* 全覽網格彈窗 (Grid Modal) */
+    .grid-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 48, 46, 0.75);
+      z-index: 999;
+      padding: 28px;
+      overflow-y: auto;
+    }
+    .grid-modal.open { display: block; }
+    .grid-modal-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      background: var(--bg-washi);
+      border-radius: 18px;
+      padding: 22px;
+      border: 2px solid var(--border-washi);
+    }
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .grid-item {
+      background: #fff;
+      border: 1.5px solid var(--border-washi);
+      border-radius: 10px;
+      padding: 9px 11px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+    }
+    .grid-item:hover {
+      border-color: var(--mod-border);
+      background: var(--mod-bg);
+      transform: translateY(-2px);
+    }
+
+    /* Slide 34 翻轉測驗卡 */
+    .quiz-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+    .quiz-card {
+      background: #fff;
+      border: 2px solid var(--border-washi);
+      border-radius: 14px;
+      padding: 13px 16px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+    .quiz-card:hover {
+      border-color: var(--mod-border);
+      box-shadow: var(--shadow-hover);
+    }
+    .quiz-ans {
+      display: none;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1.5px dashed var(--mod-border);
+      color: var(--obs-text);
+      font-size: 0.76rem;
+      line-height: 1.42;
+    }
+    .quiz-card.revealed .quiz-ans {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部章節快速導覽列 -->
+  <header class="top-nav">
+    <div class="brand-box">
+      <span class="brand-badge">GRAPH WIKI 34 頁旗艦版</span>
+      <span>🐕 汪博士｜敗血症強化學習知識圖譜</span>
+    </div>
+    <div class="chapter-pills">
+      <button class="chap-btn graph-hub" onclick="goToSlide(0)">01 封面與圖例</button>
+      <button class="chap-btn graph-hub" onclick="goToSlide(1)">🗺️ 02 論文演進圖譜</button>
+      <button class="chap-btn graph-hub" onclick="goToSlide(2)">🧩 03 概念×陷阱圖譜</button>
+      <button class="chap-btn" onclick="goToSlide(3)">P01 Raghu'17a</button>
+      <button class="chap-btn" onclick="goToSlide(6)">P02 Raghu'17b</button>
+      <button class="chap-btn" onclick="goToSlide(9)">P03 AI Clinician'18</button>
+      <button class="chap-btn" onclick="goToSlide(12)">P04 Peng MoE'18</button>
+      <button class="chap-btn" onclick="goToSlide(15)">P05 Nanayakkara'22</button>
+      <button class="chap-btn" onclick="goToSlide(18)">P06 Yu DWDR'23</button>
+      <button class="chap-btn" onclick="goToSlide(21)">P07 Lin DDPG'23</button>
+      <button class="chap-btn" onclick="goToSlide(24)">P08 Wu WD3QNE'23</button>
+      <button class="chap-btn" onclick="goToSlide(27)">P09 Choi HIGHLIGHT'24</button>
+      <button class="chap-btn graph-hub" onclick="goToSlide(30)">🏆 31-34 因果總結與測驗</button>
+    </div>
+    <div class="nav-right">
+      <button class="grid-btn" onclick="toggleGridModal()">田 34頁全覽 (G)</button>
+    </div>
+  </header>
+
+  <main class="deck-stage">
+
+    <!-- =====================================================================
+         SLIDE 01: 封面與三層 Graph 視覺語意指南
+         ===================================================================== -->
+    <section class="slide active" data-chapter="0">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">KARPATHY LLM WIKI × SEPSIS REINFORCEMENT LEARNING KNOWLEDGE GRAPH</div>
+          <h1 class="slide-title">敗血症強化學習（Sepsis RL）知識圖譜與臨床決策深度解析</h1>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">和紙暖白 × 抹茶竹綠 × 柴犬暖杏</span>
+          <span class="pill-tag pill-mod">34 頁三層 Graph 架構</span>
+        </div>
+      </div>
+
+      <div class="grid-left-wide">
+        <div class="washi-card">
+          <div class="card-h">🧭 為什麼用「三層知識圖譜（Three-Tier Graph）」讀敗血症 RL 論文？</div>
+          <p style="font-size:0.8rem; color:var(--ink-sub); line-height:1.48;">
+            傳統讀論文容易陷入單篇細節而忽略跨文獻的<strong>「方法學演化因果鏈」</strong>與<strong>「離線評估統計陷阱」</strong>。本簡報將 2017–2024 年 9 篇代表性敗血症 RL 文獻編譯為三層有向圖（DAG）：
+          </p>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>三層 Graph 閱讀導覽流程圖</span><span>點擊 Slide 02–03 節點可自由跳轉</span></div>
+            <div class="dag-row">
+              <div class="g-node obs">
+                <span class="n-tag">Tier 1｜宏觀層 (Slides 02–03)</span>
+                <span class="n-title">互動式全域知識圖譜導覽</span>
+                <span class="n-desc">點擊 9 大論文節點或 6 大 MDP/偏誤概念節點，一眼看懂「誰解決了誰的臨床痛點」。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">點擊跳轉</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">Tier 2｜中觀層 (每篇頂部)</span>
+                <span class="n-title">跨論文演化定位麵包屑</span>
+                <span class="n-desc">每篇第 1 頁頂部標示 <code>[前驅痛點] ➔ ★[本篇突破] ➔ [後續演進]</code>，可隨時點擊前後文獻跳轉。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">展開 3 頁</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node act">
+                <span class="n-tag">Tier 3｜微觀層 (Slides 04–30)</span>
+                <span class="n-title">單篇固定 3 頁深度 DAG</span>
+                <span class="n-desc">P.1 收案篩選漏斗圖 ➔ P.2 MDP 與模型閉環圖 ➔ P.3 實驗數據表 + 統計因果偏誤圖。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-h mod" style="margin-top:4px;">🎨 全簡報統一 Graph 視覺語意圖例（Stage 3 Visual Semantics Spec）</div>
+          <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
+            <div class="g-node obs" style="padding:6px 8px;"><span class="n-tag">🟢 臨床觀測</span><span class="n-desc">收案隊列、生命徵象、檢驗值</span></div>
+            <div class="g-node mod" style="padding:6px 8px;"><span class="n-tag">🟠 編碼與模型</span><span class="n-desc">狀態表徵網路與 RL 演算法</span></div>
+            <div class="g-node act" style="padding:6px 8px;"><span class="n-tag">🔵 處方與評估</span><span class="n-desc">輸液/升壓劑量與 OPE 指標</span></div>
+            <div class="g-node rew" style="padding:6px 8px;"><span class="n-tag">🟣 獎勵與護欄</span><span class="n-desc">生理獎懲與人類專家規則</span></div>
+            <div class="g-node pit" style="padding:6px 8px;"><span class="n-tag">🔴 偏誤與陷阱</span><span class="n-desc">適應症混淆、DNR、OPE 虛高</span></div>
+          </div>
+        </div>
+
+        <div class="washi-card soft" style="align-items:center; justify-content:center; text-align:center;">
+          <img src="dr_wang_01_greeting_sweat.jpg" alt="汪博士歡迎您" style="width:210px; height:210px; object-fit:cover; border-radius:18px; border:3px solid var(--mod-border); box-shadow:var(--shadow-soft); margin-bottom:10px;" />
+          <h3 style="font-size:1.05rem; color:var(--mod-text); margin-bottom:4px;">🐕 汪博士（Dr. Wang）領航導讀</h3>
+          <p style="font-size:0.78rem; color:var(--ink-sub); line-height:1.45; max-width:420px;">
+            「汪！用 LLM 讀醫療強化學習論文時，最怕只看摘要寫『AI 存活率高達 97.8%』就照單全收！在接下來每一篇論文的第 3 頁，我都會用<strong>因果有向圖（Causal DAG）</strong>幫大家抓出隱藏在公式背後的臨床與統計盲點！」
+          </p>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+            <button class="ctrl-btn" style="background:var(--obs-border); color:#fff;" onclick="goToSlide(1)">▶ 進入 Slide 02：互動式論文演進圖譜</button>
+            <button class="ctrl-btn" onclick="goToSlide(2)">🧩 進入 Slide 03：MDP × 陷阱關聯圖</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 02: 【互動知識圖譜 I】9 篇論文「痛點 ➔ 解法」演進網路圖
+         ===================================================================== -->
+    <section class="slide" data-chapter="1">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">TIER 1 MACRO GRAPH HUB I ｜ INTERACTIVE EVOLUTION TOPOLOGY</div>
+          <h2 class="slide-title">【互動知識圖譜 I】2017–2024 九篇敗血症 RL 論文「臨床痛點 ➔ 演算法突破」演進網路</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">💡 點擊任一論文節點可直接跳轉該章節</span>
+        </div>
+      </div>
+
+      <div class="interactive-map-container">
+        <div class="map-filter-bar">
+          <span style="font-size:0.76rem; font-weight:800; color:var(--ink-main);">🔍 依技術演化支線篩選高亮：</span>
+          <button class="filter-chip active" onclick="filterLineage('all', this)">全部 9 篇論文網路</button>
+          <button class="filter-chip" onclick="filterLineage('state', this)">🟢 狀態表徵與生理機制支線 (P01, P03, P04, P05)</button>
+          <button class="filter-chip" onclick="filterLineage('reward_act', this)">🟠 獎勵塑形與連續動作支線 (P01, P02, P07)</button>
+          <button class="filter-chip" onclick="filterLineage('ope_safe', this)">🟣 離線評估與臨床安全護欄支線 (P03, P06, P08, P09)</button>
+        </div>
+
+        <!-- 頂部臨床根問題節點 -->
+        <div class="g-node obs" style="text-align:center; padding:6px 12px;">
+          <span class="n-tag">ROOT CLINICAL CHALLENGE</span>
+          <strong style="font-size:0.82rem;">敗血症休克核心臨床兩難：靜脈輸液（IV Fluids）與升壓藥（Vasopressors）缺乏個人化動態滴定指引</strong>
+          <span style="font-size:0.74rem; margin-left:8px;">（過量輸液 ➔ 肺水腫與高 CVP 器官衰竭 ｜ 延遲升壓 ➔ 低 MAP 組織低灌流不可逆損傷）</span>
+        </div>
+
+        <!-- 9 篇論文 3x3 互動拓撲網格 -->
+        <div class="paper-graph-grid">
+          <!-- P01 -->
+          <div class="paper-node-card" data-lineage="state reward_act" onclick="goToSlide(3)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id">Paper 01｜MLHC 2017</span><span class="pnc-jump">跳轉 Slides 04–06 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Raghu et al. (MLHC 2017)</div>
+              <div style="font-size:0.74rem; color:var(--obs-text); font-weight:700; margin:2px 0;">突破：48 維連續狀態 + Sparse DAE + Dueling DDQN</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=17,898)；分離狀態價值 V(s) 與動作優勢 A(s,a)，克服傳統離散狀態資訊流失。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 遺留痛點：U 型曲線適應症混淆、罕見狀態外推風險 ➔ 啟發 P02, P04, P07</div>
+          </div>
+
+          <!-- P02 -->
+          <div class="paper-node-card" data-lineage="reward_act" onclick="goToSlide(6)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--rew-border);">Paper 02｜NIPS 2017</span><span class="pnc-jump">跳轉 Slides 07–09 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Raghu et al. (NIPS 2017)</div>
+              <div style="font-size:0.74rem; color:var(--rew-text); font-weight:700; margin:2px 0;">突破：ΔSOFA + tanh(ΔLactate) 連續生理獎勵塑形</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">解決 72h 長軌跡僅靠終端生死 (±15) 的信用分配難題；依低/中/高 SOFA 分層進行 WDR 評估。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 遺留痛點：重症群出現 Action (0,0) 獎勵駭客、長軌跡權重爆炸 ➔ 啟發 P06</div>
+          </div>
+
+          <!-- P03 -->
+          <div class="paper-node-card" data-lineage="state ope_safe" onclick="goToSlide(9)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--act-border);">Paper 03｜Nat Med 2018</span><span class="pnc-jump">跳轉 Slides 10–12 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Komorowski et al. (AI Clinician)</div>
+              <div style="font-size:0.74rem; color:var(--act-text); font-weight:700; margin:2px 0;">突破：K-means 750 離散狀態 + eICU 198 院外部驗證</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=17,083) 訓練 + eICU (N=79,073) 驗證；揭示提早用升壓藥 (30% vs 17%) 並限縮輸液。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 遺留痛點：750 群聚為生理黑盒子、無不確定性量化 ➔ 啟發 P05, P08</div>
+          </div>
+
+          <!-- P04 -->
+          <div class="paper-node-card" data-lineage="state" onclick="goToSlide(12)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--mod-border);">Paper 04｜MLHC 2018</span><span class="pnc-jump">跳轉 Slides 13–15 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Peng et al. (Kernel + DRL MoE)</div>
+              <div style="font-size:0.74rem; color:var(--mod-text); font-weight:700; margin:2px 0;">突破：LSTM Autoencoder 歷史壓縮 + 近鄰安全切換</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=15,583)；依最近鄰歐氏距離動態切換 Kernel 多數決與 DRL，防止罕見狀態盲目外推。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 遺留痛點：幾何距離不等於真實生理風險 ➔ 啟發 P05 貝氏雙重不確定性</div>
+          </div>
+
+          <!-- P05 -->
+          <div class="paper-node-card" data-lineage="state" onclick="goToSlide(15)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--rew-border);">Paper 05｜NatME 2022</span><span class="pnc-jump">跳轉 Slides 16–18 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Nanayakkara et al. (Cardio + DRL)</div>
+              <div style="font-size:0.74rem; color:var(--rew-text); font-weight:700; margin:2px 0;">突破：BMDN 推論 7 大心血管參數 + 雙重不確定性</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=20,858) + eICU (N=23,607)；分離隨機波動 (Aleatoric) 與知識盲區 (Epistemic) 安全閘門。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 臨床價值：打開黑盒子，讓醫師看見周邊阻力與心搏量推論依據</div>
+          </div>
+
+          <!-- P06 -->
+          <div class="paper-node-card" data-lineage="ope_safe" onclick="goToSlide(18)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--act-border);">Paper 06｜BSPC 2023</span><span class="pnc-jump">跳轉 Slides 19–21 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Yu et al. (DIRL + MT-Dueling + DWDR)</div>
+              <div style="font-size:0.74rem; color:var(--act-text); font-weight:700; margin:2px 0;">突破：V1 基線 / V2 干預分離 + DWDR 退化權重評估</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=19,903)；以單步開根號退化權重取代歷史連乘，解決長軌跡 OPE 變異數爆炸。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 方法學反思：DWDR 以有偏估計 (Bias) 換取低變異數 (Low Variance)</div>
+          </div>
+
+          <!-- P07 -->
+          <div class="paper-node-card" data-lineage="reward_act" onclick="goToSlide(21)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--mod-border);">Paper 07｜Digital Health 2023</span><span class="pnc-jump">跳轉 Slides 22–24 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Lin et al. (DDPG Continuous Dosing)</div>
+              <div style="font-size:0.74rem; color:var(--mod-text); font-weight:700; margin:2px 0;">突破：DDPG Actor-Critic 連續輸液與升壓藥劑量微調</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=13,930)；消除 5×5 離散分箱的邊界跳躍失真，結合 OU 慣性雜訊進行連續劑量探索。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 遺留痛點：依賴神經網路環境模擬器自評，易產生 Model Exploitation 樂觀偏誤</div>
+          </div>
+
+          <!-- P08 -->
+          <div class="paper-node-card" data-lineage="ope_safe" onclick="goToSlide(24)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--rew-border);">Paper 08｜CMPB 2023</span><span class="pnc-jump">跳轉 Slides 25–27 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Wu et al. (WD3QNE + Human Expertise)</div>
+              <div style="font-size:0.74rem; color:var(--rew-text); font-weight:700; margin:2px 0;">突破：雙重優先回放 + 三大臨床專家硬性安全護欄</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=20,943)；MAP>65 強制停升壓藥、末期 SOFA≤3 強制停輸液、加入偏離醫師處方懲罰。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 經典教學陷阱：預估存活率 97.81% 背後的 OPE 權重自評膨脹假象！</div>
+          </div>
+
+          <!-- P09 -->
+          <div class="paper-node-card" data-lineage="ope_safe" onclick="goToSlide(27)">
+            <div>
+              <div class="pnc-top"><span class="pnc-id" style="background:var(--pit-border);">Paper 09｜Artif Intell Med 2024</span><span class="pnc-jump">跳轉 Slides 28–30 ➔</span></div>
+              <div style="font-weight:800; font-size:0.84rem; color:var(--ink-main);">Choi et al. (HIGHLIGHT 重症休克)</div>
+              <div style="font-size:0.74rem; color:var(--pit-text); font-weight:700; margin:2px 0;">突破：鎖定中重度休克 (79特徵) + Shapley + DNR 剖析</div>
+              <div style="font-size:0.72rem; color:var(--ink-sub);">MIMIC-III (N=4,124) + eICU (N=3,815)；排除輕症稀釋效應，雙向懲罰液體過載與升壓過量。</div>
+            </div>
+            <div style="margin-top:5px; font-size:0.69rem; color:var(--pit-text); font-weight:700;">⬇ 關鍵洞察：揭露 DNR 放棄急救醫囑造成的「停藥➔死亡」反向因果陷阱！</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 03: 【互動知識圖譜 II】MDP 五元組 × 臨床因果陷阱關聯圖 & LLM 教學守則
+         ===================================================================== -->
+    <section class="slide" data-chapter="2">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">TIER 1 MACRO GRAPH HUB II ｜ CONCEPT-TO-PITFALL BIPARTITE GRAPH</div>
+          <h2 class="slide-title">【互動知識圖譜 II】6 大方法學維度 × 4 大臨床因果陷阱關聯圖 ＆ LLM 教學守則</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">🎓 點擊左側概念節點，動態檢視跨論文關聯與 LLM 教學提問</span>
+        </div>
+      </div>
+
+      <div class="grid-left-wide">
+        <div class="washi-card">
+          <div class="card-h">🧩 點擊下方 6 大方法學與因果維度節點（Concept Nodes）切換檢視：</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;">
+            <div class="g-node obs" style="cursor:pointer;" onclick="showConceptDetail(0)">
+              <span class="n-tag">維度 1｜狀態空間 S</span>
+              <span class="n-title">離散群聚 vs. 深度壓縮 vs. 生理參數</span>
+              <span class="n-desc">750 群 K-means (P03) ➔ Sparse DAE (P01) ➔ LSTM (P04) ➔ 心血管 BMDN (P05)</span>
+            </div>
+            <div class="g-node mod" style="cursor:pointer;" onclick="showConceptDetail(1)">
+              <span class="n-tag">維度 2｜動作空間 A</span>
+              <span class="n-title">5×5 分位數分箱 vs. DDPG 連續滴定</span>
+              <span class="n-desc">25 種離散組合 (P01–P06, P08–P09) vs. Actor-Critic 連續微調 (P07)</span>
+            </div>
+            <div class="g-node rew" style="cursor:pointer;" onclick="showConceptDetail(2)">
+              <span class="n-tag">維度 3｜獎勵塑形 R</span>
+              <span class="n-title">終端生死 vs. ΔSOFA/ΔLactate vs. 護欄</span>
+              <span class="n-desc">純終端 ±100 (P03) ➔ 生理塑形 (P01/P02) ➔ 專家懲罰與過載約束 (P08/P09)</span>
+            </div>
+            <div class="g-node act" style="cursor:pointer;" onclick="showConceptDetail(3)">
+              <span class="n-tag">維度 4｜離線評估 OPE</span>
+              <span class="n-title">WIS / WDR / DWDR vs. 環境模擬器</span>
+              <span class="n-desc">長軌跡連乘權重爆炸 (P02/P03) ➔ DWDR 退化權重 (P06) vs. 模擬器自評 (P07)</span>
+            </div>
+            <div class="g-node pit" style="cursor:pointer;" onclick="showConceptDetail(4)">
+              <span class="n-tag">維度 5｜臨床因果偏誤</span>
+              <span class="n-title">U 型曲線適應症混淆 & DNR 反向因果</span>
+              <span class="n-desc">瀕死搶救造成劑量偏離 (P01/P03) 與臨終撤除維生治療 (P09) 的反事實失真</span>
+            </div>
+            <div class="g-node pit" style="cursor:pointer;" onclick="showConceptDetail(5)">
+              <span class="n-tag">維度 6｜獎勵駭客與自評膨脹</span>
+              <span class="n-title">全零動作 (0,0) & 97.81% 存活率海市蜃樓</span>
+              <span class="n-desc">不給藥規避短期懲罰 (P02) 與行為懲罰過濾重症死亡樣本 (P08)</span>
+            </div>
+          </div>
+
+          <!-- 動態顯示區 -->
+          <div id="concept-detail-box" class="dag-canvas" style="margin-top:6px; background:#FDF9F1;">
+            <div class="dag-title"><span id="cd-title">📌 目前檢視：維度 5｜臨床因果偏誤（U 型曲線適應症混淆 & DNR 反向因果）</span><span id="cd-papers">關聯論文：P01, P03, P08, P09</span></div>
+            <p id="cd-body" style="font-size:0.79rem; color:var(--ink-main); line-height:1.48;">
+              在回溯性 ICU 電子病歷中，<strong>「醫師給的劑量」並非隨機指派，而是強烈取決於「病患當下休克惡化程度」與「是否簽署 DNR 放棄急救」</strong>。若學生直接聽信 LLM 摘要「偏離 AI 處方越遠死亡率越高（U 型曲線）」，就會把<strong>適應症混淆（Confounding by Indication）</strong>誤判為 AI 的治療因果效益！
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🎓 汪博士整理：用 LLM 進行醫療 AI 教學的 5 大核心注意事項</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--pit-border);">1</div>
+              <div><strong>破除「摘要報喜不報憂」偏誤</strong>：LLM 預設會複述論文摘要的漂亮數字（如 Wu 2023 預估存活率 <code>97.81%</code>），教學時必須要求學生追問<strong>「評估公式如何處理與醫師處方不一致的重症死亡樣本？」</strong></div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--mod-border);">2</div>
+              <div><strong>強制繪製「因果有向無環圖（Causal DAG）」</strong>：看到 U 型曲線或劑量效益圖時，規定學生先畫出潛在混淆因子（休克嚴重度、DNR 醫囑）如何同時影響醫師處方 $a_t$ 與死亡結果 $Y$。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">3</div>
+              <div><strong>查核「動作分佈直方圖（Action Distribution）」</strong>：高 OPE 分數不代表處方合理！必須檢查模型在中重度休克病患是否大量集中建議 <code>Action (0,0)</code>（不輸液也不給升壓藥）以規避短期懲罰。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">4</div>
+              <div><strong>區分「狀態價值慢指標」與「動作觸發快指標」</strong>：引導學生分辨決定長期存活基線 $V(s)$ 的慢指標（<code>BUN, PT, PaO2</code>）與觸發 4h 升壓滴定 $A(s,a)$ 的快指標（<code>MAP, Lactate</code>）。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">5</div>
+              <div><strong>建立「安全護欄與不確定性煞車」意識</strong>：臨床部署絕不能用純黑盒子 DQN，必須結合 <code>Kernel 近鄰切換 (P04)</code>、<code>貝氏認知不確定性閘門 (P05)</code> 或 <code>SSC 生理護欄 (P08/P09)</code>。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 01: Raghu et al. (MLHC 2017) — Slides 04, 05, 06
+         ===================================================================== -->
+    <section class="slide" data-chapter="3">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(1)">[傳統離散狀態 MDP (損失連續生理細節)]</span>
+        <span class="gb-edge">──(突破：引入 48 維連續狀態 + Dueling DDQN)──▶</span>
+        <span class="gb-curr">★ P01｜Raghu et al. (MLHC 2017)</span>
+        <span class="gb-edge">──(啟發後續)──▶</span>
+        <span class="gb-node" onclick="goToSlide(6)">[P02 NIPS 獎勵塑形]</span>
+        <span class="gb-node" onclick="goToSlide(12)">[P04 Peng MoE 安全切換]</span>
+        <span class="gb-node" onclick="goToSlide(21)">[P07 Lin DDPG 連續動作]</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 01 (PART 1/3) ｜ CLINICAL MOTIVATION & COHORT SELECTION FUNNEL DAG</div>
+          <h2 class="slide-title">[P01-1/3] Raghu et al. (MLHC 2017)：連續狀態空間動機與 MIMIC-III 收案篩選漏斗圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 17,898</span>
+          <span class="pill-tag pill-mod">48 維連續特徵</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼傳統「離散狀態群聚（State Discretization）」在敗血症會失真？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>臨床生理連續性 vs. 離散分群失真因果圖</span><span>Problem Formulation DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">方法學痛點 1：資訊壓縮損失</span>
+                <span class="n-title">傳統 K-means / 網格離散化將連續生命徵象硬切成少數群聚</span>
+                <span class="n-desc">例如 MAP 62 與 68 mmHg、血乳酸 1.9 與 2.4 mmol/L 在臨床上代表截然不同的組織灌流危機，卻可能被歸入同一個離散狀態叢集。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">導致決策粗糙化</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">方法學痛點 2：高維度狀態空間爆炸 (Curse of Dimensionality)</span>
+                <span class="n-title">48 項臨床指標若各自切分，狀態數將呈指數級爆炸</span>
+                <span class="n-desc">傳統表格型強化學習（Tabular Q-Learning / Policy Iteration）無法在保留細微生理差異的同時估計轉移機率。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">本研究核心突破</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">🟢 P01 核心解方：Continuous State-Space DRL</span>
+                <span class="n-title">直接將 48 維標準化連續生理向量輸入深度神經網路 + Sparse DAE</span>
+                <span class="n-desc">不需人為分群，直接捕捉血壓、乳酸、器官衰竭分數（SOFA）與液體平衡的連續非線性交互作用。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 敗血症隊列收案篩選與時間步前處理漏斗圖（Cohort Funnel DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>MIMIC-III v1.4 Cohort & Imputation Pipeline</span><span>N = 17,898 ｜ Δt = 4h</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Step 1｜原始資料庫與 Sepsis-3 篩選</span>
+                <span class="n-title">MIMIC-III v1.4 成人 ICU 住院病患（年齡 ≥ 18 歲）</span>
+                <span class="n-desc">依據國際 <strong>Sepsis-3 標準</strong>：疑似感染（採檢微生物培養 + 使用抗生素）且合併急性器官功能障礙 <code>SOFA ≥ 2</code>。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">鎖定感染時間點 T0 視窗</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">Step 2｜觀測時間窗界定 (72 小時黃金期)</span>
+                <span class="n-title">擷取疑似感染確診時間點 T0 前 24 小時至後 48 小時</span>
+                <span class="n-desc">排除資料缺失率過高、入住未滿規定時數或給藥紀錄異常之個案 ➔ 最終納入 <strong>N = 17,898 名敗血症病患</strong>。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">4 小時時間步切分 (共 ~209,000 步)</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">Step 3｜48 維多頻率特徵對齊與缺失值插補管線</span>
+                <span class="n-title">人口學 (5) + 高頻生命徵象 (12) + 低頻檢驗值 (26) + 輸出入量/SOFA (5)</span>
+                <span class="n-desc">• 同 4h 視窗多筆觀測：取平均值或總和（如尿量、輸液量）<br/>• 缺失值處理：先採 <strong>Sample-and-Hold（前值維持法）</strong>，剩餘缺失以 <strong>KNN 鄰近插補</strong>，最後進行 Z-score 標準化。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 05: P01 Part 2/3 -->
+    <section class="slide" data-chapter="3">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 01 (PART 2/3) ｜ MDP 5-TUPLE & SPARSE DAE + DUELING DDQN ARCHITECTURE DAG</div>
+          <h2 class="slide-title">[P01-2/3] Raghu et al. (MLHC 2017)：Sparse DAE 潛在狀態壓縮與 Dueling DDQN 雙流架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">Sparse Denoising Autoencoder</span>
+          <span class="pill-tag pill-act">Dueling Double DQN (5×5 Actions)</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h mod">📐 MDP 強化學習五元組數學定義</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym">S</div>
+              <div><strong>連續狀態空間 $\mathcal{S} \in \mathbb{R}^{48}$</strong>：包含生命徵象（<code>HR, MAP, SBP, DBP, RR, SpO2, Temp</code>）、血氣與生化檢驗（<code>Lactate, BUN, Creatinine, PaO2, FiO2, Platelets, PT, Bilirubin</code> 等）及經 <strong>Sparse DAE</strong> 編碼之潛在表徵 $z_t$。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">A</div>
+              <div><strong>離散動作空間 $|\mathcal{A}| = 5 \times 5 = 25$</strong>：將每 4h 之<strong>靜脈輸液總量（IV Fluids）</strong>與<strong>升壓藥最大劑量（Vasopressors，去甲腎上腺素等效劑量）</strong>各自切為 <code>Level 0（零劑量）</code>與非零劑量之四分位數 <code>Level 1–4</code>。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">R</div>
+              <div><strong>生理塑形 + 終端獎勵函數 $R(s_t, s_{t+1})$</strong>：<br/>• 中間步：懲罰高 SOFA 停滯、獎勵 $\Delta\text{SOFA}$ 下降與 $\tanh(\Delta\text{Lactate})$ 改善。<br/>• 終端步：院內存活 $+15$、院內死亡 $-15$。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">γ</div>
+              <div><strong>折扣因子 $\gamma = 0.99$ ｜ 時間步 $\Delta t = 4\text{h}$</strong>：兼顧短期器官灌流穩定與最終住院存活率。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 狀態編碼與 Dueling Double DQN 決策閉環架構有向圖（Model Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>為什麼要把 Q(s,a) 拆成狀態價值 V(s) 與動作優勢 A(s,a)？</span><span>Dueling DDQN Closed-Loop DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.95;">
+                <span class="n-tag">輸入層</span>
+                <span class="n-title">48 維連續生理特徵 $s_t$</span>
+                <span class="n-desc">含過往 4h 生命徵象與檢驗值</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">加入雜訊重建<br/>L1 稀疏約束</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.05;">
+                <span class="n-tag">特徵編碼器</span>
+                <span class="n-title">Sparse Denoising Autoencoder</span>
+                <span class="n-desc">過濾 EHR 測量雜訊，提取高資訊密度之連續潛在狀態向量 $z_t$</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">雙流分支</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-col" style="flex:1.3;">
+                <div class="g-node rew">
+                  <span class="n-tag">狀態價值流 Value Stream V(s)</span>
+                  <span class="n-title">評估「病患自身基礎病情好壞」</span>
+                  <span class="n-desc">與單步給什麼藥無關的整體存活預後基線</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">動作優勢流 Advantage Stream A(s,a)</span>
+                  <span class="n-title">評估「25 種劑量相較平均處方之邊際效益」</span>
+                  <span class="n-desc">精準聚焦於輸液與升壓藥劑量差異帶來的淨影響</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act" style="flex:1.2;">
+                <span class="n-tag">Q 值聚合與 Double DQN 解耦更新</span>
+                <span class="n-title">$Q(s,a) = V(s) + \big(A(s,a) - \frac{1}{25}\sum_{a'} A(s,a')\big)$</span>
+                <span class="n-desc">以主網路 $\theta$ 選動作 $\arg\max_a Q(s',a;\theta)$、目標網路 $\theta^-$ 算價值，消除 Q 值樂觀高估（Overestimation Bias）</span>
+              </div>
+              <div class="g-edge reward"><span class="e-label">環境狀態轉移 $s_{t+1}$<br/>回傳 $\Delta\text{SOFA}+\Delta\text{Lac}$ 獎勵</span><span class="e-arrow">-.-></span></div>
+              <div class="g-node rew" style="flex:0.8;">
+                <span class="n-tag">經驗回放池</span>
+                <span class="n-title">Prioritized Replay Buffer</span>
+                <span class="n-desc">依 TD-error 優先抽樣高資訊量之罕見重症轉移步</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 06: P01 Part 3/3 -->
+    <section class="slide" data-chapter="3">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 01 (PART 3/3) ｜ ABLATION RESULTS & U-CURVE CONFOUNDING BY INDICATION DAG</div>
+          <h2 class="slide-title">[P01-3/3] Raghu et al. (MLHC 2017)：四組架構消融實驗與「U 型曲線適應症混淆」因果拆解</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">⚠️ 核心教學陷阱：U 型曲線適應症混淆</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 四種模型架構消融實驗（Ablation Study）與處方差異對照表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>比較模型架構</th>
+                <th>狀態表徵與價值解耦</th>
+                <th>Q 值穩定度與臨床處方行為特徵</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Linear Q-Network</strong></td>
+                <td>原始 48 維線性映射</td>
+                <td>無法捕捉生理非線性交互作用，策略過度簡化。</td>
+              </tr>
+              <tr>
+                <td><strong>2. Vanilla DQN</strong></td>
+                <td>深度網路（選動作與算價值同網路）</td>
+                <td>出現嚴重 <strong>Q 值樂觀高估（Overestimation）</strong>，傾向極端劑量。</td>
+              </tr>
+              <tr>
+                <td><strong>3. Double DQN (DDQN)</strong></td>
+                <td>主網路選動作、Target 網路算價值</td>
+                <td>抑制高估，但仍將「病患自身好壞」與「藥效」混在一起。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>4. Dueling DDQN + Sparse DAE ★</strong></td>
+                <td>Sparse DAE 潛在狀態 + $V(s)/A(s,a)$ 分離</td>
+                <td>• 在 <strong>~75% 需升壓藥情境建議較低保守劑量</strong><br/>• 劑量與 AI 一致時對應最低住院死亡率（呈現 U 型曲線）</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:9px 12px;">
+            <div style="font-size:0.78rem; font-weight:800; color:var(--obs-text); margin-bottom:3px;">📌 關鍵實驗觀察：醫師處方 － AI 建議劑量差（Dosage Difference）</div>
+            <p style="font-size:0.74rem; color:var(--ink-sub); line-height:1.42;">
+              作者繪製橫軸為「實際醫師劑量 － AI 建議劑量」、縱軸為「住院死亡率」之曲線，發現當兩者差距為 0（谷底）時死亡率最低，往左右兩端偏離越大死亡率越高（U 型曲線）。<strong>但這能直接證明「聽 AI 的話就能救命」嗎？請看右圖因果拆解！</strong>
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼「U 型曲線」不能直接當作因果鐵證？（Confounding by Indication DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>適應症混淆（Confounding by Indication）結構因果圖</span><span>Causal Pitfall #1</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">🔴 潛在共同混淆因子 (Confounder C)</span>
+                <span class="n-title">病患真實休克惡化程度與未觀測微循環衰竭 (Unobserved Severity)</span>
+                <span class="n-desc">同時決定了「臨床醫師被迫開多少搶救藥」以及「病患最終會不會死亡」！</span>
+              </div>
+              <div class="dag-row" style="width:100%;">
+                <div class="g-node obs">
+                  <span class="n-tag">臨床搶救路徑</span>
+                  <span class="n-title">醫師見病患瀕死，被迫開立極高劑量升壓藥/輸液</span>
+                  <span class="n-desc">而 AI 模型多數時候建議中等保守標準劑量（或零劑量）</span>
+                </div>
+                <div class="g-edge bias"><span class="e-label">導致劑量差拉大</span><span class="e-arrow">✖──▶</span></div>
+                <div class="g-node act">
+                  <span class="n-tag">U 型曲線兩端</span>
+                  <span class="n-title">$|a_{\text{Doc}} - a_{\text{AI}}| \gg 0$</span>
+                  <span class="n-desc">落在 U 型曲線最右側或最左側</span>
+                </div>
+              </div>
+              <div class="g-node pit">
+                <span class="n-tag">✖ 統計假象 vs. 臨床真相</span>
+                <span class="n-title">谷底（差距=0）多半是「醫師給 0、AI 也給 0」的輕症穩定病患！</span>
+                <span class="n-desc">右端高死亡率是因為<strong>病患本身處於難治型休克（Refractory Shock）而死</strong>，而非「因為醫師沒聽 AI 的話少給藥才死」！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_04_thinking_magnifying_glass.jpg" alt="汪博士思考" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #1）</div>
+          <div>
+            <strong>教學守則</strong>：一般 LLM 讀完 Raghu (2017) 與 Komorowski (2018) 會直接總結：「<em>當醫師處方越接近 AI 時病患存活率越高，證明 AI 優於人類醫師</em>」。請要求學生向 LLM 下達反事實查核指令：<strong>「請檢視 U 型曲線谷底（劑量差=0）裡有多少比例是『雙方皆不給藥 (0,0) 的輕症病患』？並用適應症混淆（Confounding by Indication）解釋右端高死亡率的成因。」</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 02: Raghu et al. (NIPS 2017) — Slides 07, 08, 09
+         ===================================================================== -->
+    <section class="slide" data-chapter="4">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(3)">[P01 Raghu MLHC 2017 (建立連續狀態 Dueling DDQN)]</span>
+        <span class="gb-edge">──(突破：深化 ΔSOFA/ΔLactate 獎勵塑形與低/中/高 SOFA 分層 OPE)──▶</span>
+        <span class="gb-curr">★ P02｜Raghu et al. (NIPS 2017)</span>
+        <span class="gb-edge">──(遺留長軌跡權重爆炸與全零動作問題)──▶</span>
+        <span class="gb-node" onclick="goToSlide(18)">[P06 Yu 2023 DWDR]</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 02 (PART 1/3) ｜ CREDIT ASSIGNMENT CHALLENGE & SEVERITY STRATIFICATION DAG</div>
+          <h2 class="slide-title">[P02-1/3] Raghu et al. (NIPS 2017)：長軌跡稀疏獎勵歸因難題與 SOFA 嚴重度分層流程圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-rew">Reward Shaping 獎勵塑形</span>
+          <span class="pill-tag pill-obs">Low / Medium / High SOFA 分層</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼只給「終端生死獎勵（$\pm 15$）」無法訓練好重症處方策略？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>72 小時（18 個時間步）信用分配難題（Credit Assignment Problem）</span><span>Temporal Delay DAG</span></div>
+            <div class="dag-col">
+              <div class="dag-row" style="width:100%;">
+                <div class="g-node obs"><span class="n-tag">Step 1 (0–4h)</span><span class="n-title">早期輸液與升壓</span><span class="n-desc">$r_1 = 0$ (無立即回饋)</span></div>
+                <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+                <div class="g-node obs"><span class="n-tag">Step 2..17</span><span class="n-title">中間 64 小時調整</span><span class="n-desc">$r_2 \dots r_{17} = 0$</span></div>
+                <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+                <div class="g-node pit"><span class="n-tag">Step 18 (終端)</span><span class="n-title">院內存活/死亡</span><span class="n-desc">$r_{18} = \pm 15$</span></div>
+              </div>
+              <div class="g-edge bias"><span class="e-label">梯度回傳稀釋與歸因混亂</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">核心痛點：單步處方好壞與最終生死相隔數十小時</span>
+                <span class="n-title">病患可能在第 4 小時接受了正確的早期復甦，卻在第 60 小時死於院內呼吸器肺炎或併發症</span>
+                <span class="n-desc">若無中間步生理指標（SOFA、血乳酸）的即時回饋，RL 會把第 4 小時的正確搶救也一併打上負分（$-15$）！</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">P02 解決方案</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node rew">
+                <span class="n-tag">🟣 引入臨床生理密集獎勵塑形 (Dense Physiological Reward Shaping)</span>
+                <span class="n-title">在每一個 4h 時間步即時評估 $\Delta\text{SOFA}$（器官衰竭變化）與 $\Delta\text{Lactate}$（組織缺氧改善）</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 收案與三階段 SOFA 臨床嚴重度分層評估漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>為什麼不能只看全體病患平均死亡率？必須按 SOFA 嚴重度拆開檢驗！</span><span>Severity Stratification Funnel</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">母群體隊列</span>
+                <span class="n-title">MIMIC-III Sepsis-3 成人隊列（N = 17,898 名病患）</span>
+                <span class="n-desc">全體基準院內死亡率約 <strong>14.3%</strong>（切分 80% 訓練驗證 / 20% 獨立測試集進行離線評估）</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">依病程 SOFA 分數拆為三大臨床風險亞群</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs">
+                  <span class="n-tag">🟢 低嚴重度群</span>
+                  <span class="n-title">Low SOFA (&lt; 5)</span>
+                  <span class="n-desc">器官功能輕微受損，多數不需升壓藥即可自癒，基準死亡率極低。</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">🟠 中嚴重度群 (關鍵群)</span>
+                  <span class="n-title">Medium SOFA (5–15)</span>
+                  <span class="n-desc">處於休克惡化或逆轉的十字路口，輸液與升壓滴定對預後影響最大！</span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">🔴 高嚴重度群</span>
+                  <span class="n-title">High SOFA (&gt; 15)</span>
+                  <span class="n-desc">多重器官嚴重衰竭，歷史樣本稀疏且基準死亡率極高。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 08: P02 Part 2/3 -->
+    <section class="slide" data-chapter="4">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 02 (PART 2/3) ｜ PHYSIOLOGICAL REWARD SHAPING FORMULA & CLOSED-LOOP GRAPH</div>
+          <h2 class="slide-title">[P02-2/3] Raghu et al. (NIPS 2017)：$\Delta\text{SOFA}$ 與 $\tanh(\Delta\text{Lactate})$ 獎勵塑形閉環圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-rew">$c_0=0.025, c_1=0.125, c_2=2.0$</span>
+          <span class="pill-tag pill-act">WDR 加權雙重穩健評估</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h rew">🟣 生理獎勵塑形函數拆解（Reward Shaping）</div>
+          <div style="background:var(--rew-bg); border:1.5px solid var(--rew-border); border-radius:10px; padding:9px 11px; font-size:0.75rem; color:var(--rew-text);">
+            <strong>單步中間生理獎勵公式 $R_{\text{int}}(s_t, s_{t+1})$：</strong><br/>
+            $$r_t = -c_0 \mathbb{I}(s_{t+1}^{\text{SOFA}} = s_t^{\text{SOFA}} \land s_{t+1}^{\text{SOFA}}>0) - c_1 (s_{t+1}^{\text{SOFA}} - s_t^{\text{SOFA}}) - c_2 \tanh(s_{t+1}^{\text{Lac}} - s_t^{\text{Lac}})$$
+            <span style="font-size:0.71rem;">其中超參數設定為：$c_0 = 0.025,\; c_1 = 0.125,\; c_2 = 2.0$；終端步 $R_{\text{term}} = \pm 15$。</span>
+          </div>
+
+          <div class="mdp-list" style="margin-top:4px;">
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">1</div>
+              <div><strong>器官衰竭停滯懲罰項 ($-0.025$)</strong>：若病患 $\text{SOFA} > 0$ 且經過 4 小時治療後分數完全沒改善，給予輕微負向懲罰，督促模型尋找能改善器官功能的處方。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">2</div>
+              <div><strong>器官衰竭差分項 ($-0.125 \cdot \Delta\text{SOFA}$)</strong>：若 $\text{SOFA}_{t+1} < \text{SOFA}_t$（器官功能好轉），差分為負，乘上負號即獲得<strong>正向獎勵</strong>；反之惡化則受罰。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--mod-border);">3</div>
+              <div><strong>雙曲正切血乳酸差分項 ($-2.0 \cdot \tanh(\Delta\text{Lactate})$)</strong>：血乳酸是組織缺氧最敏感指標。使用 $\tanh(\cdot)$ 函數將變化限制在 $(-1, 1)$ 內，<strong>防止單一極端檢驗異常值（Outlier）撐爆梯度</strong>！</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 三通道獎勵合成與 WDR 離線評估閉環架構圖（Reward & OPE Loop DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>從每 4 小時生理變化合成密集獎勵並以 WDR 進行離線價值估計</span><span>Reward Shaping & WDR DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs">
+                <span class="n-tag">狀態轉移觀測</span>
+                <span class="n-title">$s_t \xrightarrow{a_t} s_{t+1}$</span>
+                <span class="n-desc">觀測 4h 前後之 SOFA 與血乳酸濃度變化</span>
+              </div>
+              <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+              <div class="dag-col">
+                <div class="g-node rew"><span class="n-tag">通道 1</span><span class="n-title">高 SOFA 停滯懲罰</span><span class="n-desc">$-0.025 \cdot \mathbb{I}(\Delta\text{SOFA}=0 \land >0)$</span></div>
+                <div class="g-node rew"><span class="n-tag">通道 2</span><span class="n-title">器官衰竭升降獎懲</span><span class="n-desc">$-0.125 \cdot (\text{SOFA}_{t+1}-\text{SOFA}_t)$</span></div>
+                <div class="g-node rew"><span class="n-tag">通道 3</span><span class="n-title">組織缺氧乳酸獎懲</span><span class="n-desc">$-2.0 \cdot \tanh(\text{Lac}_{t+1}-\text{Lac}_t)$</span></div>
+              </div>
+              <div class="g-edge reward"><span class="e-label">加總合成 $r_t$</span><span class="e-arrow">-.-></span></div>
+              <div class="g-node mod">
+                <span class="n-tag">策略學習</span>
+                <span class="n-title">Dueling DDQN</span>
+                <span class="n-desc">更新 25 種劑量之價值估計 $\hat{Q}(s,a)$</span>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">離線策略評估 (Off-Policy Evaluation, OPE)</span>
+                <span class="n-title">Weighted Doubly Robust (WDR) 雙重穩健估計器</span>
+                <span class="n-desc">結合「重要性抽樣權重 $w_{1:t} = \frac{\rho_{1:t}}{\sum \rho_{1:t}}$」與「神經網路價值估計 $\hat{Q}(s_t,a_t)$, $\hat{V}(s_t)$」：只要行為策略 $\pi_b$ 或價值模型 $\hat{Q}$ 其中之一估計準確，即可降低評估偏誤。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 09: P02 Part 3/3 -->
+    <section class="slide" data-chapter="4">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 02 (PART 3/3) ｜ STRATIFIED OPE METRICS & ACTION (0,0) REWARD HACKING DAG</div>
+          <h2 class="slide-title">[P02-3/3] Raghu et al. (NIPS 2017)：跨嚴重度評估結果與「全零動作 `(0,0)` 獎勵駭客」陷阱</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">⚠️ 核心教學陷阱：Action (0,0) 獎勵駭客</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 低／中／高 SOFA 分層處方表現與預估死亡率數據表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>SOFA 嚴重度分層</th>
+                <th>臨床表現與預估死亡率</th>
+                <th>AI 處方分佈（Action 5×5 Histogram）關鍵現象</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>低嚴重度群<br/>(Low SOFA &lt; 5)</strong></td>
+                <td>基準死亡率極低（~3–5%）<br/>AI 與醫師高度一致</td>
+                <td>臨床醫師與 AI 皆集中於 <code>Action (0,0)</code>（不給升壓藥、不給或少給輸液），符合輕症保守照護。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>中嚴重度群 ★<br/>(Med SOFA 5–15)</strong></td>
+                <td>劑量接近 AI 時預估死亡率降至 <strong>4.6%</strong><br/>（全體基準死亡率 14.3%）</td>
+                <td>WDR 顯示顯著正回饋，但<strong>在部分中重度狀態下，AI 仍異常高比例建議 <code>Action (0,0)</code>！</strong></td>
+              </tr>
+              <tr class="pitfall-row">
+                <td><strong>高嚴重度群 ⚠️<br/>(High SOFA &gt; 15)</strong></td>
+                <td>基準死亡率極高<br/>離線評估變異數劇烈放大</td>
+                <td>醫師大量開立高劑量升壓藥（Level 3–4），但 <strong>AI 卻反常地把大量機率集中在 <code>Action (0,0)</code> 完全不給藥！</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:9px 12px;">
+            <div style="font-size:0.78rem; font-weight:800; color:var(--pit-text); margin-bottom:2px;">🤔 思考題：為什麼病人都已經嚴重休克（SOFA &gt; 15）了，AI 卻建議「完全不給藥 (0,0)」？</div>
+            <p style="font-size:0.74rem; color:var(--ink-sub); line-height:1.42;">
+              這不是因為「不給藥能治好重症休克」，而是離線強化學習在回溯性醫療資料中最典型的<strong>獎勵駭客與分布外插偏誤（Reward Hacking & Distributional Shift）</strong>！請看右側因果圖解。
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼中重度休克 AI 會集中建議 `Action (0,0)`？（獎勵駭客因果 DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>離線 RL 在重症群學會「不作為 (0,0)」的錯誤因果推導鏈</span><span>Causal Pitfall #2</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">歷史資料事實 1</span>
+                <span class="n-title">在 MIMIC-III 中，接受高劑量升壓藥 (Level 3–4) 的患者多為瀕死休克</span>
+                <span class="n-desc">即便醫師給了藥，下一個 4h 的 $\text{SOFA}$ 與 $\text{Lactate}$ 仍常因病程慣性繼續惡化（產生負獎勵 $r_t < 0$ 與終端 $-15$）。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">缺乏反事實因果模型</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">歷史資料事實 2</span>
+                <span class="n-title">資料庫裡拿到 <code>Action (0,0)</code> 的人，95% 以上都是生命徵象穩定的輕症患者</span>
+                <span class="n-desc">這些人自然擁有正面的 $\Delta\text{SOFA}$ 與 $+15$ 存活獎勵。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">神經網路錯誤外推</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">🔴 獎勵駭客結果 (Reward Hacking)</span>
+                <span class="n-title">Dueling DDQN 誤以為：「只要在重症時選 <code>Action (0,0)</code>，就能拿到像輕症一樣的高 Q 值！」</span>
+                <span class="n-desc">模型把「因為病況穩定所以不給藥」倒果為因成「因為不給藥所以病況穩定」！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_02_explaining_pointer.jpg" alt="汪博士講解" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #2）</div>
+          <div>
+            <strong>教學守則</strong>：請要求學生用 LLM 讀取論文中的 <strong>3D Action Histogram（醫師 vs. AI 的 5×5 動作分佈圖）</strong>，並回答：「<em>在高 SOFA 重症群中，AI 最常建議的動作座標是什麼？如果在真實 ICU 對敗血性休克病人執行 <code>Action (0,0)</code> 會發生什麼事？</em>」這能訓練學生養成「先檢查動作合理性、再相信評估分數」的鐵律。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 03: Komorowski et al. (Nature Medicine 2018) — Slides 10, 11, 12
+         ===================================================================== -->
+    <section class="slide" data-chapter="5">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(1)">[單一醫院 MIMIC-III 內部評估]</span>
+        <span class="gb-edge">──(突破：建立 750 離散狀態 MDP + eICU 198 院外部跨院驗證)──▶</span>
+        <span class="gb-curr">★ P03｜Komorowski et al. (Nat Med 2018)</span>
+        <span class="gb-edge">──(啟發後續)──▶</span>
+        <span class="gb-node" onclick="goToSlide(15)">[P05 心血管生理模型]</span>
+        <span class="gb-node" onclick="goToSlide(24)">[P08 臨床專家護欄]</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 03 (PART 1/3) ｜ EXTERNAL VALIDATION MOTIVATION & DUAL-COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P03-1/3] Komorowski et al. (Nat Med 2018)：AI Clinician 跨院驗證動機與雙隊列篩選漏斗圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 17,083</span>
+          <span class="pill-tag pill-act">eICU N = 79,073 (198 院外部驗證)</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h">🟢 為什麼《Nature Medicine》將 AI Clinician 視為里程碑？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>突破單一醫學中心過度擬合（Overfitting to Single-Center Practice）</span><span>External Validity DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">前人研究瓶頸</span>
+                <span class="n-title">僅在單一醫院（Beth Israel Deaconess Medical Center, MIMIC-III）切分訓練與測試集</span>
+                <span class="n-desc">模型可能只是學到該院特定的醫囑習慣與病患結構，無法證明在其他醫院 ICU 依然有效。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">AI Clinician 雙隊列隔離驗證設計</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">🟢 跨院零微調遷移驗證 (Zero-Shot Cross-Hospital Validation)</span>
+                <span class="n-title">在 MIMIC-III 完全鎖定策略後，直接於全美 198 家醫院組成的 eICU-CRD 進行超過 330 萬個時間步的獨立測試！</span>
+                <span class="n-desc">同時採用透明可審計的表格型馬可夫決策過程（Tabular MDP + Policy Iteration），避免神經網路訓練不收斂問題。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h act">🔵 MIMIC-III 訓練隊列 vs. eICU-CRD 跨院驗證隊列篩選漏斗圖（Dual Funnel DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Sepsis-3 標準（SOFA ≥ 2 + 疑似感染）｜ T0 前 24h 至後 48h ｜ Δt = 4h</span><span>Dual Cohort Funnel</span></div>
+            <div class="dag-row" style="align-items:stretch;">
+              <div class="dag-col">
+                <div class="g-node obs">
+                  <span class="n-tag">開發與內部驗證隊列</span>
+                  <span class="n-title">MIMIC-III (單一醫學中心)</span>
+                  <span class="n-desc">符合 Sepsis-3 成人病患，排除缺失過多或異常給藥紀錄</span>
+                </div>
+                <div class="g-edge data"><span class="e-arrow">⬇</span></div>
+                <div class="g-node mod">
+                  <span class="n-tag">最終納入 N = 17,083</span>
+                  <span class="n-title">80% 訓練建模 / 20% 驗證選模</span>
+                  <span class="n-desc">進行 500 次 Bootstrap 重抽樣建構候選模型並以 WIS 選出最佳策略</span>
+                </div>
+              </div>
+              <div class="g-edge causal"><span class="e-label">48 維特徵對齊<br/>鎖定策略遷移</span><span class="e-arrow">══▶</span></div>
+              <div class="dag-col">
+                <div class="g-node act">
+                  <span class="n-tag">獨立跨院外部測試隊列</span>
+                  <span class="n-title">Philips eICU-CRD (198 家醫院)</span>
+                  <span class="n-desc">涵蓋全美不同規模醫院，排除撤除治療或紀錄不全個案</span>
+                </div>
+                <div class="g-edge data"><span class="e-arrow">⬇</span></div>
+                <div class="g-node act">
+                  <span class="n-tag">最終納入 N = 79,073</span>
+                  <span class="n-title">共 3,317,941 個 4h 決策時間步</span>
+                  <span class="n-desc">100% 獨立外部測試，驗證 AI 建議劑量與實際存活率之關聯</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: P03 Part 2/3 -->
+    <section class="slide" data-chapter="5">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 03 (PART 2/3) ｜ K-MEANS 750 CLUSTERS & 500 BOOTSTRAP POLICY ITERATION DAG</div>
+          <h2 class="slide-title">[P03-2/3] Komorowski et al. (Nat Med 2018)：750 離散狀態聚類與 Policy Iteration 保守選模管線圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">K-means 750 States</span>
+          <span class="pill-tag pill-rew">500× Bootstrap 第 99 百分位安全策略</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h mod">📐 AI Clinician 的表格型 MDP 五元組設計</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym">S</div>
+              <div><strong>750 個離散生理狀態 + 2 個終端吸收態</strong>：將 48 維臨床變數（人口學、生命徵象、檢驗值、輸出入量）透過 <strong>K-means 聚類成 $750$ 個離散叢集</strong>，外加「存活出院」與「死亡（90 天或院內）」2 個吸收態。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">A</div>
+              <div><strong>$5 \times 5 = 25$ 種離散動作</strong>：每 4h 靜脈輸液量（0 + 四分位數 1–4 級）× 去甲腎上腺素等效升壓藥劑量（0 + 四分位數 1–4 級）。<strong>安全過濾：在某狀態下若歷史出現次數 $&lt;5$ 次之罕見動作，予以屏蔽不選！</strong></div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">R</div>
+              <div><strong>純終端獎勵（Pure Terminal Reward）</strong>：中間轉移步獎勵皆為 $0$；進入終端存活態給予 $+100$，進入終端死亡態給予 $-100$。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">γ</div>
+              <div><strong>折扣因子 $\gamma = 0.99$ ｜ 演算法：Policy Iteration</strong>：利用顯式轉移矩陣 $T(s,a,s')$ 直接透過動態規劃精確求解最佳策略。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 500 次 Bootstrap 重抽樣與 WIS 保守安全策略挑選管線圖（Pipeline DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>如何量化轉移機率不確定性並選出「高信心下界」之安全臨床策略？</span><span>Bootstrap MDP Pipeline</span></div>
+            <div class="dag-col">
+              <div class="dag-row" style="width:100%;">
+                <div class="g-node obs">
+                  <span class="n-tag">Step 1｜狀態離散化</span>
+                  <span class="n-title">48 維特徵 ➔ K-means 750 群</span>
+                  <span class="n-desc">將連續軌跡轉為離散狀態序列 $(s_1, a_1, s_2, \dots)$</span>
+                </div>
+                <div class="g-edge data"><span class="e-label">80% 隨機抽樣<br/>重複 500 次</span><span class="e-arrow">──▶</span></div>
+                <div class="g-node mod">
+                  <span class="n-tag">Step 2｜建立 500 組 MDP 模型</span>
+                  <span class="n-title">統計 500 組轉移矩陣 $T_k(s,a,s')$</span>
+                  <span class="n-desc">刪除出現 $&lt;5$ 次之 $(s,a)$ 對，避免罕見巧合誤導動態規劃</span>
+                </div>
+              </div>
+              <div class="g-edge data"><span class="e-label">對 500 組矩陣分別執行 Policy Iteration</span><span class="e-arrow">⬇</span></div>
+              <div class="dag-row" style="width:100%;">
+                <div class="g-node mod">
+                  <span class="n-tag">Step 3｜求解 500 個候選策略</span>
+                  <span class="n-title">$\pi_1^*, \pi_2^*, \dots, \pi_{500}^*$</span>
+                  <span class="n-desc">每個策略代表一種可能的最佳給藥映射表</span>
+                </div>
+                <div class="g-edge reward"><span class="e-label">20% 驗證集計算<br/>WIS 95% 信賴下界</span><span class="e-arrow">-.-></span></div>
+                <div class="g-node act">
+                  <span class="n-tag">Step 4｜挑選最終 AI Clinician</span>
+                  <span class="n-title">選取 WIS 分數最高（第 99 百分位）之策略</span>
+                  <span class="n-desc">鎖定該策略後，直接應用於 eICU 79,073 名跨院病患進行外部驗證</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: P03 Part 3/3 -->
+    <section class="slide" data-chapter="5">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 03 (PART 3/3) ｜ EARLY VASOPRESSOR PATHWAY, BIOMARKER RANKING & CRITIQUE</div>
+          <h2 class="slide-title">[P03-3/3] Komorowski et al. (Nat Med 2018)：早期升壓藥分流圖、關鍵生物標記與方法學批判</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-act">AI 升壓藥 30% vs. 醫師 17%</span>
+          <span class="pill-tag pill-rew">關鍵特徵：BUN, PaO2, PT, Lactate</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 臨床醫師 vs. AI Clinician 處方分流與關鍵特徵重要性表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>比較維度</th>
+                <th>人類臨床醫師 (Clinicians)</th>
+                <th>AI Clinician 最佳策略 ($\pi^*$)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="highlight-row">
+                <td><strong>升壓藥使用比例<br/>(Vasopressor Use)</strong></td>
+                <td>僅在 <strong>17%</strong> 時間步給予升壓藥（傾向先大量灌注輸液，無效才用升壓藥）</td>
+                <td>在 <strong>30%</strong> 時間步建議給予低中劑量升壓藥（<strong>提早介入維持灌流壓</strong>）</td>
+              </tr>
+              <tr>
+                <td><strong>靜脈輸液策略<br/>(IV Fluid Strategy)</strong></td>
+                <td>平均輸液量顯著偏高，容易在 24–48h 造成液體正平衡與組織水腫</td>
+                <td><strong>嚴格限制過量輸液</strong>，避免液體過載（Fluid Overload）傷害肺腎功能</td>
+              </tr>
+              <tr>
+                <td><strong>Random Forest 狀態價值 $V(s)$ 最重要特徵</strong></td>
+                <td colspan="2"><strong>1. BUN（血中尿素氮）</strong>、<strong>2. PaO2（動脈氧分壓）</strong>、<strong>3. PT（凝血酶原時間）</strong>、<strong>4. GCS（昏迷指數）</strong>、<strong>5. Lactate（血乳酸）</strong> ➔ 反映腎、肺、凝血、腦等慢速器官衰竭基線。</td>
+              </tr>
+              <tr>
+                <td><strong>觸發升壓藥動作之最重要特徵</strong></td>
+                <td colspan="2"><strong>MAP（平均動脈壓）</strong>、<strong>Lactate（血乳酸）</strong>、<strong>SBP（收縮壓）</strong>、<strong>Urine Output（尿量）</strong> ➔ 反映急性血流動力學低灌流。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🔵 面對敗血性低血壓：醫師慣性路徑 vs. AI Clinician 決策分流圖（Decision Pathway DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>為什麼「提早給升壓藥 + 限制過量輸液」符合現代重症醫學趨勢？</span><span>Clinical vs. AI Pathway DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">臨床觸發點</span>
+                <span class="n-title">敗血症休克初期：血管擴張、毛細血管滲漏、MAP 下降、血乳酸上升</span>
+              </div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node pit">
+                  <span class="n-tag">🔴 傳統醫師慣性路徑</span>
+                  <span class="n-title">持續大量灌注晶體輸液 (High IV Fluids)，遲遲不用升壓藥 (17%)</span>
+                  <span class="n-desc">✖ 滲漏至組織間隙 ➔ 肺水腫（PaO2 惡化）、腎靜脈高壓（BUN 上升）與高死亡率</span>
+                </div>
+                <div class="g-node act">
+                  <span class="n-tag">🔵 AI Clinician 建議路徑</span>
+                  <span class="n-title">適度初始輸液後，提早啟用升壓藥 (30%) 並收斂後續輸液量</span>
+                  <span class="n-desc">✔ 直接恢復血管張力與器官灌流壓（MAP ≥ 65），避免液體過載併發症</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_03_starry_eyed_breakthrough.jpg" alt="汪博士星星眼" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #3）</div>
+          <div>
+            <strong>方法學雙面刃</strong>：AI Clinician 雖透過 eICU ($N=79,073$) 展現跨院穩健性，但學界（如 Gottesman et al., <em>Nature Medicine</em> 2019）指出兩大限制：① K-means 750 群忽略了病程時序趨勢（違反馬可夫假設）；② 挑選「WIS 第 99 百分位策略」其實會系統性偏好<strong>在歷史資料中剛好沒有死亡個案的罕見軌跡</strong>。教學時請讓學生用 LLM 對比「狀態價值特徵（BUN/PT）」與「動作特徵（MAP/Lactate）」的生理時間尺度差異！
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 04: Peng et al. (MLHC 2018) — Slides 13, 14, 15
+         ===================================================================== -->
+    <section class="slide" data-chapter="6">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(3)">[P01 Raghu 2017 (純 DRL 在罕見病況外推失控)]</span>
+        <span class="gb-edge">──(突破：LSTM Autoencoder 歷史壓縮 + Kernel 近鄰安全切換 MoE)──▶</span>
+        <span class="gb-curr">★ P04｜Peng et al. (MLHC 2018)</span>
+        <span class="gb-edge">──(啟發後續)──▶</span>
+        <span class="gb-node" onclick="goToSlide(15)">[P05 貝氏認知不確定性安全閘門]</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 04 (PART 1/3) ｜ EXTRAPOLATION RISK IN RARE STATES & COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P04-1/3] Peng et al. (MLHC 2018)：罕見狀態外推風險與 $N=15,583$ 全時程收案篩選圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 15,583</span>
+          <span class="pill-tag pill-mod">Mixture-of-Experts (Kernel + DRL)</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼純深度強化學習（Pure DRL）在罕見病況下會有致命風險？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>非馬可夫歷史遺忘 + 分布外外推失控（Out-of-Distribution Extrapolation）</span><span>Problem Motivation DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">痛點 1｜單步觀測不具馬可夫性 (POMDP)</span>
+                <span class="n-title">僅看當下 4 小時的 MAP = 65 mmHg，無法區分「剛復甦成功」與「正從 90 崩跌下來」</span>
+                <span class="n-desc">P01–P03 僅用當下時間步特徵 $o_t$，忽略了從入 ICU 以來的完整時序變化軌跡 $h_t = (o_1, a_1, \dots, o_t)$。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">加上神經網路盲目外推</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">痛點 2｜罕見病況外推失控 (Function Approximation Error)</span>
+                <span class="n-title">當病患處於訓練集極少見的罕見共病狀態時，DDQN 會強行非線性外推</span>
+                <span class="n-desc">可能推薦從未在類似病人身上驗證過的極端高劑量組合。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">P04 核心解方</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">🟢 結合「Kernel 歷史近鄰保守策略」與「DRL 探索策略」之混合專家 (MoE)</span>
+                <span class="n-title">常見/有把握狀態讓 DRL 優化處方；罕見/邊界狀態退回模仿歷史近鄰醫師處方！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 全時程敗血症隊列收案與三階段資料集切分漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>MIMIC-III Sepsis-3 Cohort Split for MoE Gating Training</span><span>N = 15,583</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">原始篩選隊列</span>
+                <span class="n-title">MIMIC-III 符合 Sepsis-3 定義之成人 ICU 病患（N = 15,583）</span>
+                <span class="n-desc">擷取疑似感染 T0 前 24h 至後 48h 之 4 小時時間步序列（涵蓋人口學、生理指標、檢驗與干預處方）。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">嚴格三折切分（避免 Gating 網路過擬合訓練集）</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs">
+                  <span class="n-tag">🟢 訓練集 (Train)</span>
+                  <span class="n-title">N = 10,000 人</span>
+                  <span class="n-desc">訓練 LSTM Autoencoder、建立 Kernel 近鄰搜尋庫、並訓練 Dueling DDQN 專家。</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">🟠 驗證集 (Validation)</span>
+                  <span class="n-title">N = 2,000 人</span>
+                  <span class="n-desc">專門用來訓練與調校 <strong>MoE 門控切換網路（Gating Network）</strong> 之權重參數。</span>
+                </div>
+                <div class="g-node act">
+                  <span class="n-tag">🔵 測試集 (Test)</span>
+                  <span class="n-title">N = 3,583 人</span>
+                  <span class="n-desc">執行 1,000 次 Bootstrap WIS 離線策略評估，對比四大策略表現。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 14: P04 Part 2/3 -->
+    <section class="slide" data-chapter="6">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 04 (PART 2/3) ｜ LSTM AUTOENCODER & KERNEL-DRL MOE SWITCHING ARCHITECTURE DAG</div>
+          <h2 class="slide-title">[P04-2/3] Peng et al. (MLHC 2018)：LSTM 歷史狀態壓縮與 Kernel-DRL 混合專家切換架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">LSTM Autoencoder (32-dim Latent)</span>
+          <span class="pill-tag pill-act">Distance-Based Gating MoE</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h mod">📐 POMDP 歷史壓縮與雙專家定義</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym">z</div>
+              <div><strong>LSTM Autoencoder 潛在狀態 $z_t \in \mathbb{R}^{32}$</strong>：將病患從入住到當下 $t$ 的完整觀測序列 $(o_1, a_1, \dots, o_t)$ 編碼為 32 維向量，並透過序列重建損失確保保留關鍵病程趨勢。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">K</div>
+              <div><strong>專家 1：Kernel 近鄰安全策略 $\pi_{\text{kernel}}(a|z_t)$</strong>：在訓練集潛在空間搜尋歐氏距離最近的 $K$ 個歷史狀態，依據其實際存活回報加權統計處方機率（只推薦歷史醫師曾在相似病人用過且安全的劑量）。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--mod-border);">D</div>
+              <div><strong>專家 2：Dueling DDQN 深度策略 $\pi_{\text{DRL}}(a|z_t)$</strong>：以 $z_t$ 為輸入學習 25 種動作的 Q 值，具備跨狀態泛化與策略改善能力。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">G</div>
+              <div><strong>門控混合網路 Gating Network $w(z_t) \in [0,1]$</strong>：輸入狀態與最近鄰距離特徵，動態輸出混合策略 $\pi_{\text{MoE}} = w \cdot \pi_{\text{DRL}} + (1-w) \cdot \pi_{\text{kernel}}$。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 LSTM 歷史表徵提取 $\to$ 雙專家分支 $\to$ 距離感知門控切換閉環圖（MoE Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>結合非參數近鄰記憶（Non-parametric Kernel）與參數化深度網路（Parametric DRL）</span><span>MoE Closed-Loop DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.85;">
+                <span class="n-tag">時序歷史輸入</span>
+                <span class="n-title">序列 $h_t = (o_1 \dots o_t)$</span>
+                <span class="n-desc">解決單步觀測遺忘病程趨勢問題</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">序列編碼重建</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:0.95;">
+                <span class="n-tag">時序編碼器</span>
+                <span class="n-title">LSTM Autoencoder</span>
+                <span class="n-desc">壓縮為 32 維歷史潛在狀態 $z_t$</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">三路分流</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-col" style="flex:1.4;">
+                <div class="g-node obs">
+                  <span class="n-tag">分支 1｜Kernel 近鄰專家 $\pi_{\text{kernel}}$</span>
+                  <span class="n-title">搜尋訓練集最近 $K$ 個鄰居，加權模仿安全處方</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">分支 2｜深度強化學習專家 $\pi_{\text{DRL}}$</span>
+                  <span class="n-title">Dueling DDQN 探索高報酬最佳處方組合</span>
+                </div>
+                <div class="g-node rew">
+                  <span class="n-tag">分支 3｜Gating 距離安全開關 $w(z_t)$</span>
+                  <span class="n-title">計算 $z_t$ 與訓練集最近鄰歐氏距離 $d_{\min}$</span>
+                </div>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">最終混合處方輸出 (Mixture-of-Experts Policy)</span>
+                <span class="n-title">$\pi_{\text{MoE}}(a \mid z_t) = w(z_t) \cdot \pi_{\text{DRL}}(a \mid z_t) + \big(1 - w(z_t)\big) \cdot \pi_{\text{kernel}}(a \mid z_t)$</span>
+                <span class="n-desc">以 WIS（Weighted Importance Sampling）最大化作為 Gating Network 的直接優化目標！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 15: P04 Part 3/3 -->
+    <section class="slide" data-chapter="6">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 04 (PART 3/3) ｜ WIS EVALUATION GAINS & TEMPORAL AUTHORITY SHIFT DAG</div>
+          <h2 class="slide-title">[P04-3/3] Peng et al. (MLHC 2018)：MoE 離線評估增益與「病程時間軸主導權切換」流程圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-act">MoE WIS &gt; 純 DRL &gt; 純 Kernel &gt; 醫師</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 測試集（$N=3,583$）1,000 次 Bootstrap WIS 離線評估對照表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>評估策略類別</th>
+                <th>方法學特性</th>
+                <th>測試集 WIS 預期回報表現與臨床行為</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. 臨床醫師行為策略 ($\pi_b$)</strong></td>
+                <td>歷史真實處方紀錄</td>
+                <td>基準回報最低；在複雜病程中存在給藥延遲或液體過量。</td>
+              </tr>
+              <tr>
+                <td><strong>2. 純 Kernel 近鄰策略 ($\pi_{\text{kernel}}$)</strong></td>
+                <td>非參數局部歷史加權</td>
+                <td>安全穩健、不亂開極端藥，但在複雜多變狀態下缺乏全局前瞻優化能力。</td>
+              </tr>
+              <tr>
+                <td><strong>3. 純 Dueling DDQN ($\pi_{\text{DRL}}$)</strong></td>
+                <td>深度神經網路全局價值擬合</td>
+                <td>在多數狀態優於 Kernel，但在罕見長尾狀態因外推失準拉低整體表現。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>4. MoE 混合專家策略 ($\pi_{\text{MoE}}$) ★</strong></td>
+                <td>LSTM 表徵 + 距離感知動態混合</td>
+                <td><strong>取得最高 WIS 預期回報分佈</strong>；兼顧常規狀態優化與罕見狀態近鄰保護。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:9px 12px;">
+            <div style="font-size:0.78rem; font-weight:800; color:var(--obs-text); margin-bottom:2px;">📌 處方變動解析：MoE 何時聽 Kernel、何時聽 DRL？</div>
+            <p style="font-size:0.74rem; color:var(--ink-sub); line-height:1.42;">
+              分析門控權重 $w(z_t)$ 隨住院時間與病情複雜度的變化，揭示了極具臨床啟發性的<strong>「三階段決策主導權移轉」</strong>（見右圖）。
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 隨 ICU 病程演進之「Kernel vs. DRL 決策主導權動態切換」流程圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Gating Weight w(z_t) Dynamic Shift Across ICU Timeline</span><span>Authority Transition DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">🟢 階段 1｜剛入 ICU 初期（常見典型狀態，$d_{\min}$ 極小）</span>
+                <span class="n-title">歷史資料庫中有大量相似病患 ➔ Kernel 近鄰專家信心極高</span>
+                <span class="n-desc">此時 Kernel 與 DRL 建議高度一致，穩健執行標準初期液體復甦。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">病程進入中期（多器官交互複雜化）</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">🟠 階段 2｜病程中期動態調整（DRL 主導權 $w(z_t)$ 顯著上升）</span>
+                <span class="n-title">單純模仿過去醫師平均行為並非最佳 ➔ Dueling DDQN 接手微調</span>
+                <span class="n-desc">在需要升壓藥與限縮輸液的關鍵轉折點，DRL 提供比傳統近鄰更具前瞻性的處方組合。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">遭遇罕見極端惡化或異常共病（$d_{\min} &gt; \text{Threshold}$）</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">🔴 階段 3｜分布外罕見狀態（OOD 安全降級保護）</span>
+                <span class="n-title">距離過遠觸發安全閾值 ➔ 強制調降 DRL 權重，退回 Kernel 臨床近鄰保護！</span>
+                <span class="n-desc">寧可保守參考最接近的歷史醫師處方，也不允許神經網路盲目猜測劑量。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_05_thumbs_up_approved.jpg" alt="汪博士比讚" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #4）</div>
+          <div>
+            <strong>方法學批判</strong>：Peng et al. (2018) 開創了「有把握才用深度學習、沒把握退回近鄰醫師」的混合安全架構。但<strong>直接在驗證集上以最大化 WIS 為目標訓練 Gating Network</strong>，可能會讓 Gating Network 學會「專挑剛好讓重要性權重 $\rho$ 變大的專家」（即過擬合 OPE 指標本身）！教學時請學生思考如何區分「真正的臨床安全」與「迎合 WIS 公式的權重挑選」。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 05: Nanayakkara et al. (Nature Biomedical Engineering 2022) — Slides 16, 17, 18
+         ===================================================================== -->
+    <section class="slide" data-chapter="7">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(9)">[P03 Komorowski 2018 (純數據黑盒子)]</span>
+        <span class="gb-edge">+</span>
+        <span class="gb-node" onclick="goToSlide(12)">[P04 Peng 2018 (幾何距離切換)]</span>
+        <span class="gb-edge">──(突破：嵌入心血管生理 ODE 模型 + 貝氏雙重不確定性)──▶</span>
+        <span class="gb-curr">★ P05｜Nanayakkara et al. (NatME 2022)</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 05 (PART 1/3) ｜ PHYSIOLOGICAL BLACK-BOX CRISIS & DUAL-COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P05-1/3] Nanayakkara et al. (NatME 2022)：心血管生理黑盒子痛點與雙隊列收案流程圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 20,858</span>
+          <span class="pill-tag pill-act">eICU N = 23,607</span>
+          <span class="pill-tag pill-rew">Cardiovascular Physics + Bayesian RL</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼臨床重症醫師不敢直接相信純數據驅動的 RL 黑盒子？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>同一個低血壓表象（MAP = 58 mmHg），背後可能是完全相反的心血管病理機制！</span><span> Mechanistic Blindness DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">表面觀測相同</span>
+                <span class="n-title">床邊監視器顯示：低血壓 MAP = 58 mmHg、心率 HR = 115 bpm</span>
+              </div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node rew">
+                  <span class="n-tag">病理機制 A｜血管麻痺型 (Warm Shock)</span>
+                  <span class="n-title">心輸出量高，但總周邊血管阻力（TPR）極度崩潰</span>
+                  <span class="n-desc">➔ 臨床正解：應立即補充<strong>升壓藥（收縮血管）</strong>，而非無止境灌水！</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">病理機制 B｜低容積/心因型 (Cold Shock)</span>
+                  <span class="n-title">周邊血管已代償收縮，但心搏量（SV）與有效血容積嚴重不足</span>
+                  <span class="n-desc">➔ 臨床正解：應優先<strong>補充輸液或強心支持</strong>，盲目狂加升壓藥會導致末端缺血壞死！</span>
+                </div>
+              </div>
+              <div class="g-node pit">
+                <span class="n-tag">純數據 RL 的盲點</span>
+                <span class="n-title">若不推論底層心血管物理參數（心搏量、血管阻力、順應性），AI 無法向醫師解釋「為何此刻該升壓而非輸液」！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 與 eICU-CRD 雙隊列收案與血流動力學觀測提取漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Dual-Database Hemodynamic & Sepsis Cohort Funnel</span><span>Total N = 44,465</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">訓練與內部驗證隊列</span>
+                <span class="n-title">MIMIC-III 敗血症成人隊列（N = 20,858 名病患）</span>
+                <span class="n-desc">連續提取 5 大核心血流動力學觀測向量 $x_t = [\text{HR, SBP, DBP, MAP, CVP}]$ 與完整生化檢驗、輸液及升壓藥紀錄。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">跨院外部泛化驗證</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node act">
+                <span class="n-tag">獨立跨院外部測試隊列</span>
+                <span class="n-title">eICU-CRD 多中心資料庫（N = 23,607 名病患）</span>
+                <span class="n-desc">驗證「貝氏心血管參數推論網路（BMDN）」與「不確定性感知 D3QN」在不同醫院測量雜訊下的穩健度。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 17: P05 Part 2/3 -->
+    <section class="slide" data-chapter="7">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 05 (PART 2/3) ｜ BAYESIAN MIXTURE DENSITY NETWORK (BMDN) & 7 CARDIOVASCULAR PARAMETERS</div>
+          <h2 class="slide-title">[P05-2/3] Nanayakkara et al. (NatME 2022)：BMDN 逆推 7 大心血管參數與 D3QN 閉環架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-rew">7 大隱藏心血管參數 $\theta_t$</span>
+          <span class="pill-tag pill-mod">Aleatoric + Epistemic 雙重不確定性</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h rew">🟣 7 大隱藏心血管生理參數 $\theta_t$ 定義</div>
+          <p style="font-size:0.74rem; color:var(--ink-sub); line-height:1.4;">
+            作者以心血管集總參數微分方程模型（Lumped-Parameter Cardiovascular Model）為物理先驗，訓練 <strong>Bayesian Mixture Density Network (BMDN)</strong> 從床邊一般生命徵象逆向推論 7 個平時需侵入性導管才能測得的生理參數：
+          </p>
+          <div class="mdp-list">
+            <div class="mdp-item"><div class="mdp-sym" style="background:var(--rew-border);">1</div><div><strong>心搏量（Stroke Volume, $V_{\text{SV}}$）</strong>與<strong>基礎心率（$f_{\text{HR}}$）</strong>：反映心臟幫浦每次收縮射血能力。</div></div>
+            <div class="mdp-item"><div class="mdp-sym" style="background:var(--obs-border);">2</div><div><strong>總周邊血管阻力（Total Peripheral Resistance, $R_{\text{TPR}}$）</strong>：反映敗血症血管擴張／麻痺程度與升壓藥收縮效果。</div></div>
+            <div class="mdp-item"><div class="mdp-sym" style="background:var(--mod-border);">3</div><div><strong>動脈順應性（$C_a$）</strong>與<strong>靜脈順應性（$C_v$）</strong>：反映血管壁彈性與液體容受度。</div></div>
+            <div class="mdp-item"><div class="mdp-sym" style="background:var(--act-border);">4</div><div><strong>過量循環血容積（Excess Volume, $V_{\text{ex}}$）</strong>與<strong>開環壓力參數</strong>：直接反映有效前負荷與液體補充狀態。</div></div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 生命徵象觀測 $\to$ BMDN 物理逆推與雙重不確定性拆解 $\to$ D3QN 閉環圖（Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Physics-Informed Bayesian Mixture Density Network + Dueling Double DQN</span><span>Mechanistic RL Loop</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.85;">
+                <span class="n-tag">床邊可觀測指標</span>
+                <span class="n-title">$x_t = [\text{HR, SBP, DBP, MAP, CVP}]$</span>
+                <span class="n-desc">常規 ICU 監視器連續數值</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">MC Dropout 抽樣<br/>+ 生理 ODE 約束</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.1;">
+                <span class="n-tag">物理知情貝氏推論網路</span>
+                <span class="n-title">Bayesian Mixture Density Network (BMDN)</span>
+                <span class="n-desc">輸出高斯混合分佈 $P(\theta_t \mid x_t) = \sum_{k=1}^K \pi_k \mathcal{N}(\mu_k, \Sigma_k)$</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">同步拆解</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-col" style="flex:1.25;">
+                <div class="g-node rew">
+                  <span class="n-tag">生理潛在狀態 $\hat{\theta}_t$</span>
+                  <span class="n-title">7 大心血管參數期望值</span>
+                  <span class="n-desc">提供醫師直觀的病理機制解釋</span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">雙重不確定性量化</span>
+                  <span class="n-title">Aleatoric $\sigma_{\text{alea}}^2$ + Epistemic $\sigma_{\text{epis}}^2$</span>
+                  <span class="n-desc">區分「生理雜訊波動」與「模型知識盲區」</span>
+                </div>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">不確定性感知強化學習決策 (Uncertainty-Aware D3QN)</span>
+                <span class="n-title">將 $[\text{臨床檢驗特徵}, \hat{\theta}_t, \sigma_{\text{alea}}^2, \sigma_{\text{epis}}^2]$ 共同作為狀態向量輸入 Dueling Double DQN</span>
+                <span class="n-desc">讓 RL 代理人在學習 $5 \times 5$ 輸液與升壓藥策略時，天然具備「根據底層心血管狀態與自身把握度調整處方」的能力！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 18: P05 Part 3/3 -->
+    <section class="slide" data-chapter="7">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 05 (PART 3/3) ｜ ALEATORIC VS. EPISTEMIC SAFETY GATE DAG & CROSS-HOSPITAL OPE</div>
+          <h2 class="slide-title">[P05-3/3] Nanayakkara et al. (NatME 2022)：雙重不確定性安全閘門流程圖與跨院評估數據</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">認識 Aleatoric vs. Epistemic 不確定性</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 雙重不確定性定義對照與跨院（MIMIC-III / eICU）實驗發現</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>不確定性類別</th>
+                <th>數學來源與臨床物理意義</th>
+                <th>在敗血症病程中的變化與決策意涵</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. 隨機不確定性<br/>(Aleatoric Uncertainty)</strong></td>
+                <td>高斯混合分量內部變異數之期望值 $\mathbb{E}[\Sigma_k]$<br/>➔ <strong>資料本身的固有生理波動與測量雜訊</strong></td>
+                <td>即使收集再多訓練病患也無法消除；提醒醫師該病患當下血流動力學訊號劇烈震盪，需加密監測。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>2. 認知不確定性 ★<br/>(Epistemic Uncertainty)</strong></td>
+                <td>不同 MC Dropout 抽樣與分量均值間之離散度 $\text{Var}(\mu_k)$<br/>➔ <strong>模型因訓練樣本不足產生的「知識盲區」</strong></td>
+                <td>在<strong>死亡病患臨終惡化階段顯著飆高</strong>！代表模型對該極端生理組合「沒把握」，必須觸發人工接管閘門。</td>
+              </tr>
+              <tr>
+                <td><strong>跨院 OPE 表現<br/>(MIMIC-III &amp; eICU)</strong></td>
+                <td colspan="2">納入 7 大心血管參數與不確定性之 D3QN，在 MIMIC-III ($N=20,858$) 與 eICU ($N=23,607$) 之加權雙重穩健（WDR）評估回報均穩定超越純數據黑盒子基準模型。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🔴 臨床部署之「雙重不確定性分流與安全煞車閘門」流程圖（Safety Gate DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Decision Support Triage Based on Epistemic & Aleatoric Uncertainty</span><span>Safety Gate DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">即時輸入</span>
+                <span class="n-title">床邊生命徵象 $x_t$ 經 BMDN 計算 $(\hat{\theta}_t, \sigma_{\text{alea}}^2, \sigma_{\text{epis}}^2)$</span>
+              </div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node act">
+                  <span class="n-tag">🟢 路徑 A｜雙低信心區</span>
+                  <span class="n-title">$\sigma_{\text{epis}}^2$ 低 &amp; $\sigma_{\text{alea}}^2$ 低</span>
+                  <span class="n-desc">直接提供 D3QN 劑量建議，並同步展示周邊阻力 $R_{\text{TPR}}$ 與心搏量 $V_{\text{SV}}$ 佐證。</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">🟠 路徑 B｜高生理雜訊區</span>
+                  <span class="n-title">$\sigma_{\text{epis}}^2$ 低 &amp; $\sigma_{\text{alea}}^2$ 高</span>
+                  <span class="n-desc">模型認得此病況但訊號波動大 ➔ 建議保守劑量區間並提示檢查動脈導管阻尼。</span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">🔴 路徑 C｜知識盲區警報</span>
+                  <span class="n-title">$\sigma_{\text{epis}}^2$ 認知不確定性飆高！</span>
+                  <span class="n-desc">✖ <strong>觸發硬性安全煞車</strong>：暫停 AI 處方建議，發出 OOD 警報由重症醫師全面接管！</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_03_starry_eyed_breakthrough.jpg" alt="汪博士星星眼" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #5）</div>
+          <div>
+            <strong>教學守則</strong>：這篇是教導學生「<strong>灰色盒子（Grey-box Modeling：物理微分方程 + 深度學習）</strong>」的最佳範本！但也請提醒學生思考<strong>參數可識別性（Identifiability）</strong>限制：僅靠 5 個無創/微創血壓與心率數值逆推 7 個未知的心血管微分方程參數，在數學上屬於欠定逆問題（Ill-posed Inverse Problem），必須仰賴貝氏混合密度網路的多模態分佈才能捕捉多重可能解。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 06: Yu et al. (BSPC 2023) — Slides 19, 20, 21
+         ===================================================================== -->
+    <section class="slide" data-chapter="8">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(6)">[P02 Raghu 2017 (單一 V(s) 混淆基線 + 長軌跡 OPE 權重爆炸)]</span>
+        <span class="gb-edge">──(突破：DIRL + MT-Dueling V1/V2 分離 + DWDR 退化權重)──▶</span>
+        <span class="gb-curr">★ P06｜Yu et al. (BSPC 2023)</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 06 (PART 1/3) ｜ OPE VARIANCE EXPLOSION PAIN POINT & N=19,903 COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P06-1/3] Yu et al. (BSPC 2023)：傳統離線評估權重爆炸痛點與 $N=19,903$ 收案篩選圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 19,903 (47 特徵)</span>
+          <span class="pill-tag pill-act">DWDR 雙重退化重要性權重</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼傳統離線策略評估（IS / WIS / WDR）在長軌跡 ICU 資料會崩潰？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>連乘重要性權重（Cumulative Importance Ratio）的指數爆炸與消失危機</span><span>OPE Failure DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">數學痛點 1｜長軌跡連乘爆炸 (Curse of Horizon in OPE)</span>
+                <span class="n-title">傳統累積權重 $\rho_{1:T} = \prod_{t=1}^T \frac{\pi_e(a_t \mid s_t)}{\pi_b(a_t \mid s_t)}$ 需連乘 15～20 個時間步</span>
+                <span class="n-desc">只要其中幾步 AI 策略 $\pi_e$ 與醫師策略 $\pi_b$ 機率比值為 $5$，連乘 $15$ 步就會變成 $5^{15} \approx 3 \times 10^{10}$；反之若一步不一致（$\pi_e \approx 0$），整條病患軌跡權重直接歸零！</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">導致有效樣本數 (ESS) 趨近於 1</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">數學痛點 2｜單一状态價值 $V(s)$ 無法區分「天生體質好」與「對治療反應好」</span>
+                <span class="n-title">年輕無共病患者即使不給藥 $V(s)$ 也高；重症患者需要區分「基礎預後 $V_1(s)$」與「干預敏感度 $V_2(s)$」</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 敗血症隊列收案篩選與 47 維時序特徵前處理漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>MIMIC-III Sepsis-3 Cohort Selection & Preprocessing</span><span>N = 19,903</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Step 1｜Sepsis-3 收案篩選</span>
+                <span class="n-title">MIMIC-III 成人敗血症患者（年齡 ≥ 18 歲，符合疑似感染 + SOFA ≥ 2）</span>
+                <span class="n-desc">排除入住時間過短（&lt;12h）或關鍵給藥紀錄缺失個案 ➔ 最終納入 <strong>N = 19,903 名病患</strong>。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">4h 時間窗對齊與 47 維特徵提取</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">Step 2｜多步時序狀態建構與切分</span>
+                <span class="n-title">提取 47 項生理、生化檢驗與器官衰竭特徵，正規化至 $[0,1]$</span>
+                <span class="n-desc">切分為訓練集（75%）、驗證集（5%）與獨立測試集（20%），用於訓練行為策略（Behavior Policy $\pi_b$）與目標策略（Target Policy $\pi_e$）。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 20: P06 Part 2/3 -->
+    <section class="slide" data-chapter="8">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 06 (PART 2/3) ｜ DIRL INTERACTIVE CONVOLUTION & MT-DUELING (V1 + V2) ARCHITECTURE</div>
+          <h2 class="slide-title">[P06-2/3] Yu et al. (BSPC 2023)：DIRL 交互式時間摺積與 MT-Dueling DDQN ($V_1+V_2$) 架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">DIRL 多尺度交互網路</span>
+          <span class="pill-tag pill-rew">$Q(s,a) = V_1(s) + V_2(s) + \tilde{A}(s,a)$</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h mod">📐 MT-Dueling 三流價值分解公式</div>
+          <div style="background:var(--mod-bg); border:1.5px solid var(--mod-border); border-radius:10px; padding:8px 11px; font-size:0.75rem; color:var(--mod-text);">
+            <strong>Multi-Tier Dueling DDQN (MT-Dueling) 聚合公式：</strong><br/>
+            $$Q(s,a) = \underbrace{V_1(s)}_{\text{病患自身基線}} + \underbrace{V_2(s)}_{\text{治療干預狀態價值}} + \Big(A(s,a) - \frac{1}{|\mathcal{A}|}\sum_{a'} A(s,a')\Big)$$
+          </div>
+          <div class="mdp-list" style="margin-top:4px;">
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">V1</div>
+              <div><strong>病患基礎存活價值流 $V_1(s)$</strong>：僅由病患人口學、慢性共病與基礎器官功能決定，反映「不依賴當下處方的固有健康基線」。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--mod-border);">V2</div>
+              <div><strong>治療干預狀態價值流 $V_2(s)$</strong>：結合動態生理趨勢與前一步處方反應，反映「當下時機點接受醫療干預可創造的狀態增值」。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">A</div>
+              <div><strong>動作優勢流 $A(s,a)$</strong>：評估 25 種輸液与升壓藥組合的相對優劣。搭配含 $\Delta\text{SOFA}$、$\Delta\text{Lactate}$ 與 $\text{MAP}$ 穩定度之獎勵塑形。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 DIRL 跨通道交互特徵提取 $\to$ MT-Dueling 三頭價值合成閉環圖（Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Deep Interactive Reinforcement Learning (DIRL) + Multi-Tier Dueling Network</span><span>MT-Dueling DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.85;">
+                <span class="n-tag">47 維時序輸入</span>
+                <span class="n-title">靜態基線特徵 + 動態生理指標</span>
+                <span class="n-desc">分離固有體質與急性休克訊號</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">雙通道交互摺積<br/>+ 殘差跳接</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.05;">
+                <span class="n-tag">特徵提取主幹</span>
+                <span class="n-title">DIRL (Deep Interactive RL)</span>
+                <span class="n-desc">捕捉不同生理指標間之非線性耦合與時序變化梯度</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">三頭分支</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-col" style="flex:1.3;">
+                <div class="g-node rew">
+                  <span class="n-tag">Tier 1｜固有基線流 $V_1(s)$</span>
+                  <span class="n-title">評估病患自身健康儲備</span>
+                </div>
+                <div class="g-node mod">
+                  <span class="n-tag">Tier 2｜干預敏感度流 $V_2(s)$</span>
+                  <span class="n-title">評估當下狀態對治療之整體響應</span>
+                </div>
+                <div class="g-node act">
+                  <span class="n-tag">Tier 3｜動作優勢流 $A(s,a)$</span>
+                  <span class="n-title">評估 5×5 劑量矩陣各動作邊際優勢</span>
+                </div>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">合成最終動作價值並搭配軟目標更新 (Soft Target Update)</span>
+                <span class="n-title">$Q(s,a) = V_1(s) + V_2(s) + \big(A(s,a) - \overline{A}(s)\big) \implies \pi_e(a\mid s) = \text{Softmax / Greedy}(Q)$</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 21: P06 Part 3/3 -->
+    <section class="slide" data-chapter="8">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 06 (PART 3/3) ｜ DWDR WEIGHT DECAY DAG & 4-METRIC OPE BENCHMARK TABLE</div>
+          <h2 class="slide-title">[P06-3/3] Yu et al. (BSPC 2023)：DWDR 雙重退化權重公式流程圖與四種 OPE 指標完整對照</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-act">DWDR 最高價值 11.5318</span>
+          <span class="pill-tag pill-pit">⚠️ 教學解析：Bias-Variance 權衡</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 四種離線評估指標（IS / WIS / WDR / DWDR）與消融模型數據對照表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>模型架構 / 策略</th>
+                <th>傳統 WDR 估計值</th>
+                <th>本研究 DWDR 估計值 ★</th>
+                <th>變異數與評估穩定度表現</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Clinical Physician ($\pi_b$)</strong></td>
+                <td>基準參考值</td>
+                <td>基準參考值</td>
+                <td>受重症死亡個案拉低整體回報。</td>
+              </tr>
+              <tr>
+                <td><strong>Standard Dueling DDQN</strong></td>
+                <td>$8.42 \sim 9.15$ (波動大)</td>
+                <td>$9.84$</td>
+                <td>傳統 WDR 因連乘權重產生極端異常值。</td>
+              </tr>
+              <tr>
+                <td><strong>MT-Dueling DDQN (無 DIRL)</strong></td>
+                <td>$9.76$</td>
+                <td>$10.68$</td>
+                <td>分離 $V_1(s)+V_2(s)$ 顯著提升價值估計準確度。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>DIRL + MT-Dueling DDQN ★</strong></td>
+                <td>$10.41$</td>
+                <td><strong>11.5318 (全場最高)</strong></td>
+                <td>DWDR 成功壓制長軌跡權重爆炸，信賴區間最窄。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:8px 11px;">
+            <div style="font-size:0.76rem; font-weight:800; color:var(--act-text);">📐 DWDR（Diminished Weighted Doubly Robust）兩大數學退化改造：</div>
+            <p style="font-size:0.73rem; color:var(--ink-sub); line-height:1.4;">
+              1. <strong>捨棄歷史連乘（Memoryless Step Ratio）</strong>：不再計算 $\prod_{k=1}^t \rho_k$，僅使用當下第 $t$ 步的單步比值 $\rho_t = \frac{\pi_e(a_t|s_t)}{\pi_b(a_t|s_t)}$。<br/>
+              2. <strong>開平方根壓縮極端值（Square-Root Dampening）</strong>：定義退化權重 $\tilde{\rho}_t = \sqrt{\frac{\pi_e(a_t|s_t)}{\pi_b(a_t|s_t)}}$，再進行跨樣本歸一化 $\tilde{w}_t = \frac{\tilde{\rho}_t}{\sum_{i=1}^N \tilde{\rho}_t^{(i)}}$。
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🔵 傳統 WDR vs. 本研究 DWDR 雙重退化權重計算流程對照圖（Formula DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>How DWDR Eliminates Horizon Variance Explosion (at the Cost of Theoretical Bias)</span><span>OPE Formula DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">🔴 傳統 WDR 連乘路徑</span>
+                <span class="n-title">$\rho_{1:t} = \rho_1 \times \rho_2 \times \dots \times \rho_t \implies \text{Variance} \propto \mathcal{O}(C^t)$ 指數級爆炸！</span>
+                <span class="n-desc">理論上無偏（Asymptotically Unbiased），但在有限樣本 $N \approx 4,000$ 的測試集上變異數大到無法收斂。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">Yu et al. (2023) 雙重退化改造</span><span class="e-arrow">══▶</span></div>
+              <div class="dag-row" style="width:100%;">
+                <div class="g-node obs">
+                  <span class="n-tag">改造 1｜時間記憶退化</span>
+                  <span class="n-title">$\rho_{1:t} \longrightarrow \rho_t = \frac{\pi_e(a_t|s_t)}{\pi_b(a_t|s_t)}$</span>
+                  <span class="n-desc">斬斷跨時間步的連乘指數累積</span>
+                </div>
+                <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+                <div class="g-node act">
+                  <span class="n-tag">改造 2｜數值尺度退化</span>
+                  <span class="n-title">$\tilde{\rho}_t = \sqrt{\rho_t}$</span>
+                  <span class="n-desc">例如比值 $100 \to$ 開根號降為 $10$</span>
+                </div>
+              </div>
+              <div class="g-node mod">
+                <span class="n-tag">最終 DWDR 估計式</span>
+                <span class="n-title">$V_{\text{DWDR}} = \sum_{i=1}^N \sum_{t=1}^T \gamma^{t-1} \Big[ \tilde{w}_{t-1}^{(i)} r_t^{(i)} - \big(\tilde{w}_t^{(i)} \hat{Q}(s_t,a_t) - \tilde{w}_{t-1}^{(i)} \hat{V}(s_t)\big) \Big]$</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_04_thinking_magnifying_glass.jpg" alt="汪博士放大鏡" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #6）</div>
+          <div>
+            <strong>統計學深度批判</strong>：為什麼別的統計學家不敢隨便把連乘 $\prod_{k=1}^t \rho_k$ 換成單步 $\sqrt{\rho_t}$？因為在馬可夫決策過程中，第 $t$ 步能走到狀態 $s_t$ 的機率本身取決於前 $t-1$ 步的動作！拿掉歷史連乘並開根號，會讓估計量<strong>失去統計一致性（Inconsistent / Biased Estimator）</strong>，使評估結果過度依賴神經網路自估的 $\hat{Q}(s,a)$。請讓學生用 LLM 分析這項<strong>「偏誤—變異數權衡（Bias-Variance Tradeoff）」</strong>。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 07: Lin et al. (Digital Health 2023) — Slides 22, 23, 24
+         ===================================================================== -->
+    <section class="slide" data-chapter="9">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(3)">[P01–P06 (皆受限於 5×5 離散動作分箱)]</span>
+        <span class="gb-edge">──(突破：引入 DDPG Actor-Critic 連續輸液與升壓藥劑量微調)──▶</span>
+        <span class="gb-curr">★ P07｜Lin et al. (Digital Health 2023)</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 07 (PART 1/3) ｜ DISCRETE ACTION QUANTIZATION ARTIFACT & N=13,930 FUNNEL DAG</div>
+          <h2 class="slide-title">[P07-1/3] Lin et al. (DH 2023)：$5 \times 5$ 離散劑量分箱失真痛點與 $N=13,930$ 收案篩選圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 13,930 (46 特徵)</span>
+          <span class="pill-tag pill-mod">DDPG Continuous Control</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼把輸液與升壓藥切成「$5 \times 5$ 離散等級」不符合 ICU 床邊滴定實務？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>離散四分位數分箱（Quartile Binning）的兩大臨床失真</span><span>Action Quantization Error DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">失真 1｜分箱邊界偽跳躍 (Boundary Jump Artifact)</span>
+                <span class="n-title">去甲腎上腺素 0.075 與 0.085 $\mu\text{g/kg/min}$ 僅差 0.01，卻被硬切入 Level 1 與 Level 2</span>
+                <span class="n-desc">在離散 DQN 中，兩個極度相近的連續劑量被視為完全獨立、毫無順序關聯的兩個類別（One-hot Actions）。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">加上最高等級區間過寬</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">失真 2｜無法輸出幫浦可直接執行的精確連續流速</span>
+                <span class="n-title">當 AI 建議「Level 4 高劑量輸液（$&gt;500\text{ mL/4h}$）」時，床邊護理師到底該設 550 還是 1,500 mL？</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">P07 核心解方</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">🟢 採用 Deep Deterministic Policy Gradient (DDPG) 連續動作控制</span>
+                <span class="n-title">Actor 網路直接輸出二維連續劑量座標 $a_t = (a_{\text{fluid}}, a_{\text{vaso}}) \in \mathbb{R}_+^2$！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 連續劑量隊列收案篩選與訓練／測試切分漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>MIMIC-III Continuous Dosing Cohort Selection Funnel</span><span>N = 13,930</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Step 1｜Sepsis-3 成人病患篩選</span>
+                <span class="n-title">MIMIC-III 符合 Sepsis-3 標準且具備完整輸液與升壓藥連續流速紀錄之成人患者</span>
+                <span class="n-desc">排除資料缺失嚴重或未成年病患 ➔ 最終納入 <strong>N = 13,930 名敗血症患者</strong>（提取 46 維連續狀態特徵）。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">80% 訓練集 / 20% 測試集切分</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node mod">
+                  <span class="n-tag">🟠 訓練隊列 (80%)</span>
+                  <span class="n-title">N = 11,144 名病患</span>
+                  <span class="n-desc">訓練 DDPG Actor-Critic 四網路與環境狀態轉移模擬器。</span>
+                </div>
+                <div class="g-node act">
+                  <span class="n-tag">🔵 測試隊列 (20%)</span>
+                  <span class="n-title">N = 2,786 名病患</span>
+                  <span class="n-desc">依低/中/高 SOFA 分層比較連續劑量分佈與預估死亡率。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 23: P07 Part 2/3 -->
+    <section class="slide" data-chapter="9">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 07 (PART 2/3) ｜ DDPG ACTOR-CRITIC & ORNSTEIN-UHLENBECK NOISE CLOSED-LOOP DAG</div>
+          <h2 class="slide-title">[P07-2/3] Lin et al. (DH 2023)：DDPG Actor-Critic 連續劑量微調與 OU 慣性雜訊探索架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">Actor $\mu(s|\theta^\mu)$ + Critic $Q(s,a|\theta^Q)$</span>
+          <span class="pill-tag pill-rew">Ornstein-Uhlenbeck 時間慣性探索</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h mod">📐 DDPG 連續動作強化學習核心機制</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym">A</div>
+              <div><strong>二維連續動作空間 $a_t \in \mathbb{R}_+^2$</strong>：Actor 網路 $\mu(s_t \mid \theta^\mu)$ 直接輸出連續的「每 4h 靜脈輸液量（mL）」與「升壓藥劑量（$\mu\text{g/kg/min}$）」。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">OU</div>
+              <div><strong>Ornstein-Uhlenbeck (OU) 探索雜訊 $\mathcal{N}_t$</strong>：$a_t = \mu(s_t) + \mathcal{N}_t$，其中 $d\mathcal{N}_t = \theta_{\text{OU}}(\mu_{\text{OU}} - \mathcal{N}_t)dt + \sigma_{\text{OU}}dW_t$。具均值回歸與時間慣性，符合臨床滴定平滑漸進特性。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">∇</div>
+              <div><strong>確定性策略梯度更新（Deterministic Policy Gradient）</strong>：Actor 沿著 Critic 對動作的偏微分方向微調劑量：<br/>$\nabla_{\theta^\mu} J \approx \mathbb{E}\big[\nabla_a Q(s,a \mid \theta^Q)\big|_{a=\mu(s)} \cdot \nabla_{\theta^\mu}\mu(s \mid \theta^\mu)\big]$。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--obs-border);">τ</div>
+              <div><strong>四網路軟更新（Soft Target Update）</strong>：$\theta' \leftarrow \tau\theta + (1-\tau)\theta'$（$\tau = 0.001$），防止 Actor-Critic 耦合發散。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 DDPG Actor-Critic 四網路協同與連續劑量梯度回傳閉環圖（Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Deep Deterministic Policy Gradient (DDPG) Closed-Loop Dosing Control</span><span>Actor-Critic DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.85;">
+                <span class="n-tag">狀態輸入</span>
+                <span class="n-title">46 維連續特徵 $s_t$</span>
+                <span class="n-desc">經 BatchNorm 正規化</span>
+              </div>
+              <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.05;">
+                <span class="n-tag">策略網路 (Actor)</span>
+                <span class="n-title">$\mu(s_t \mid \theta^\mu)$</span>
+                <span class="n-desc">直接輸出確定性連續劑量向量</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">加上 OU 雜訊 $\mathcal{N}_t$</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node act" style="flex:1.05;">
+                <span class="n-tag">連續處方動作</span>
+                <span class="n-title">$a_t = (a_{\text{fluid}}, a_{\text{vaso}})$</span>
+                <span class="n-desc">精確連續數值（無分箱跳躍）</span>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node mod" style="flex:1.15;">
+                <span class="n-tag">價值網路 (Critic)</span>
+                <span class="n-title">$Q(s_t, a_t \mid \theta^Q)$</span>
+                <span class="n-desc">同時接收狀態 $s_t$ 與連續動作 $a_t$，評估該精確劑量座標之長期存活價值</span>
+              </div>
+              <div class="g-edge reward"><span class="e-label">動作梯度 $\nabla_a Q(s,a)$<br/>指導 Actor 調高或調低劑量</span><span class="e-arrow">-.-></span></div>
+              <div class="g-node rew" style="flex:0.95;">
+                <span class="n-tag">目標網路群 (Target Nets)</span>
+                <span class="n-title">$\mu'(s_{t+1} \mid \theta^{\mu'})$ &amp; $Q'(s_{t+1}, a' \mid \theta^{Q'})$</span>
+                <span class="n-desc">以 $\tau=0.001$ 緩慢追蹤主網路權重，穩定 TD 目標計算</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 24: P07 Part 3/3 -->
+    <section class="slide" data-chapter="9">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 07 (PART 3/3) ｜ SOFA STRATIFIED DOSING TABLE & SIMULATOR SELF-EVALUATION BIAS DAG</div>
+          <h2 class="slide-title">[P07-3/3] Lin et al. (DH 2023)：跨 SOFA 連續劑量結果與「環境模擬器自評偏差」因果拆解</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-act">高 SOFA 預估死亡率 52.5% ➔ 29.6%</span>
+          <span class="pill-tag pill-pit">⚠️ 核心教學陷阱：模擬器自評偏差</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 測試集（$N=2,786$）依 SOFA 分層之連續劑量與預估死亡率對照表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>SOFA 嚴重度分層</th>
+                <th>臨床醫師實際表現</th>
+                <th>DDPG 連續策略表現與預估死亡率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>低嚴重度群<br/>(Low SOFA)</strong></td>
+                <td>基準死亡率低；少量輸液、極少用升壓藥</td>
+                <td>DDPG 建議劑量與醫師高度吻合，平滑維持基礎輸液。</td>
+              </tr>
+              <tr>
+                <td><strong>中嚴重度群<br/>(Medium SOFA)</strong></td>
+                <td>輸液量波動大，升壓藥介入時機不一</td>
+                <td>DDPG 建議<strong>穩定適度輸液 + 提早平緩微調升壓藥</strong>，預估死亡率顯著低於醫師。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>高嚴重度群 ★<br/>(High SOFA 重症)</strong></td>
+                <td>實際死亡率高達 <strong>52.5%</strong></td>
+                <td>在環境模擬器評估下，DDPG 策略預估死亡率降至 <strong>29.6%</strong>（下降達 22.9 個百分點）！</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:8px 11px;">
+            <div style="font-size:0.77rem; font-weight:800; color:var(--pit-text);">🤔 為什麼連續動作空間無法直接用傳統重要性抽樣（IS / WIS）評估？</div>
+            <p style="font-size:0.73rem; color:var(--ink-sub); line-height:1.4;">
+              在連續空間中，DDPG 輸出的精確浮點數劑量（例如 $312.4\text{ mL}$）與歷史醫師實際劑量（例如 $500.0\text{ mL}$）<strong>完全相等的機率為 0</strong>！因此作者訓練了一個神經網路「環境模擬器与死亡率預測器」來給 DDPG 打分數——這卻引出了右側的方法學陷阱！
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🔴 用「神經網路模擬器」評估 RL 策略的「裁判兼球員（Model Exploitation）」因果圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Why Evaluating Continuous RL with a Learned Simulator Inflates Survival</span><span>Simulator Bias DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Step 1｜連續動作評估困境</span>
+                <span class="n-title">確定性連續策略 $\mu(s)$ 與醫師動作不重疊 ➔ 傳統 IS 權重 $\frac{\pi_e(a|s)}{\pi_b(a|s)}$ 無法計算</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">作者替代方案</span><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">Step 2｜訓練環境轉移與死亡率分類器 $\hat{P}(\text{Death} \mid s, a)$</span>
+                <span class="n-title">用同一批 MIMIC-III 資料訓練神經網路來預測「若給劑量 $a$，病人會不會死」</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">模型利用模擬器盲區 (Model Exploitation)</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">🔴 Step 3｜裁判兼球員的自評樂觀偏誤</span>
+                <span class="n-title">DDPG 很容易找到讓「死亡率預測器 $\hat{P}$」輸出低死亡率的劑量漏洞（Adversarial Dosing）</span>
+                <span class="n-desc">高 SOFA 死亡率從 52.5% 降到 29.6% 是<strong>神經網路預測器的樂觀外推</strong>，而非真實臨床試驗結果！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_02_explaining_pointer.jpg" alt="汪博士講解" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #7）</div>
+          <div>
+            <strong>教學守則</strong>：當學生讀到「連續動作 RL 讓重症死亡率減半（52.5% $\to$ 29.6%）」時，請要求他們向 LLM 提問：<strong>「在離線強化學習中，為什麼用學出來的環境模型（Learned World Model / Classifier）直接評估策略會產生 Model Exploitation（模型剝削／裁判兼球員偏誤）？若要在連續空間做重要性抽樣，應該如何引入高斯核函數（Kernel Density Estimation）？」</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 08: Wu et al. (CMPB 2023) — Slides 25, 26, 27
+         ===================================================================== -->
+    <section class="slide" data-chapter="10">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(9)">[P03 Komorowski / P01 Raghu (純數據驅動可能違反臨床指引)]</span>
+        <span class="gb-edge">──(突破：嵌入三大臨床專家硬性生理護欄 + 雙重優先回放)──▶</span>
+        <span class="gb-curr">★ P08｜Wu et al. (CMPB 2023)</span>
+        <span class="gb-edge">──(引出 OPE 97.81% 自評虛高與輕症稀釋反思)──▶</span>
+        <span class="gb-node" onclick="goToSlide(27)">[P09 Choi 2024 HIGHLIGHT]</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 08 (PART 1/3) ｜ CLINICAL GUIDELINE VIOLATION RISK & N=20,943 COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P08-1/3] Wu et al. (CMPB 2023)：純數據驅動違反臨床指引風險與 $N=20,943$ 收案篩選圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III N = 20,943 (45 特徵)</span>
+          <span class="pill-tag pill-rew">Human Expertise + WD3QNE</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼純數據驅動 RL 會在臨床穩定期開出「荒謬違規處方」？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>純數據學習缺乏「拯救敗血症運動（SSC Guidelines）」生理安全邊界</span><span>Guideline Violation DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">違規風險 1｜血壓已達標仍建議給升壓藥</span>
+                <span class="n-title">當病患平均動脈壓 $\text{MAP} &gt; 65\text{ mmHg}$ 甚至偏高時，純 D3QN 仍可能因 Q 值雜訊建議高劑量升壓藥</span>
+                <span class="n-desc">✖ 違反臨床指引（SSC 指引建議維持 MAP 65 mmHg 即可，過度升壓會引發心律不整與指端缺血）。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">加上器官恢復期過度輸液</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">違規風險 2｜病程末期輕症（$\text{SOFA} \le 3$）仍建議大量輸液</span>
+                <span class="n-desc">✖ 病患器官功能已恢復穩定，持續給予高輸液只會造成肺水腫與延遲拔管。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">P08 核心解方：WD3QNE</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node rew">
+                <span class="n-tag">🟣 將「人類專家生理規則」與「處方偏離懲罰」硬性寫入 RL 訓練與決策迴路！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 MIMIC-III 敗血症隊列收案篩選與 80/10/10 資料集切分漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>MIMIC-III Sepsis-3 Cohort Selection & Split Funnel</span><span>N = 20,943</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Step 1｜Sepsis-3 篩選與 45 維特徵工程</span>
+                <span class="n-title">MIMIC-III 成人敗血症患者（N = 20,943 名病患，基準存活率 86.52%）</span>
+                <span class="n-desc">以 4h 為時間步提取 45 項臨床指標，並將輸液與升壓藥切為 $5 \times 5 = 25$ 種離散動作。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">80% 訓練 / 10% 驗證 / 10% 測試</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs"><span class="n-tag">訓練集 (80%)</span><span class="n-title">N = 16,754</span><span class="n-desc">雙重優先回放訓練 WD3QNE</span></div>
+                <div class="g-node mod"><span class="n-tag">驗證集 (10%)</span><span class="n-title">N = 2,094</span><span class="n-desc">調校超參數與懲罰係數</span></div>
+                <div class="g-node act"><span class="n-tag">測試集 (10%)</span><span class="n-title">N = 2,095</span><span class="n-desc">計算 WIS 預期價值與預估存活率</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 26: P08 Part 2/3 -->
+    <section class="slide" data-chapter="10">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 08 (PART 2/3) ｜ WD3QNE DUAL PRIORITIZED REPLAY & THREE CLINICAL SAFETY SHIELDS DAG</div>
+          <h2 class="slide-title">[P08-2/3] Wu et al. (CMPB 2023)：WD3QNE 雙重優先經驗回放與三大臨床專家護欄架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-rew">三大臨床專家知識模組</span>
+          <span class="pill-tag pill-mod">MAP &gt; 65 與 SOFA ≤ 3 硬性安全規則</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h rew">🟣 嵌入 WD3QNE 的三大人類臨床專家機制</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--mod-border);">1</div>
+              <div><strong>加權雙重優先經驗回放（Weighted Dual Prioritized Replay）</strong>：抽樣優先權同時結合 `TD-error $|\delta_t|$` 與 `病患最終生死結果權重`，強化對關鍵搶救轉折步的學習效率。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">2</div>
+              <div><strong>獎勵函數加入「偏離醫師處方懲罰項」</strong>：在 $\Delta\text{SOFA}$ 與 $\Delta\text{Lactate}$ 獎勵外，若 AI 建議動作與醫師實際動作差距過大，給予負向懲罰，抑制極端離譜處方。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--pit-border);">3</div>
+              <div><strong>臨床生理硬性安全防護罩（Hard Safety Shields）</strong>：<br/>• <strong>規則 A（升壓護欄）</strong>：當 $\text{MAP} &gt; 65\text{ mmHg}$ 時，強制將升壓藥建議劑量設為 $0$。<br/>• <strong>規則 B（輸液護欄）</strong>：當病程末期且 $\text{SOFA} \le 3$ 時，強制將靜脈輸液建議設為 $0$。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 WD3QNE 訓練與「軟懲罰 ＋ 雙重硬性生理護欄」決策閉環圖（Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Weighted Dueling Double DQN with Human Expertise (WD3QNE)</span><span>Expert Shield DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.9;">
+                <span class="n-tag">經驗回放抽樣</span>
+                <span class="n-title">雙重優先回放池</span>
+                <span class="n-desc">依 $|\delta_t|$ + 生存結果加權抽樣 45 維狀態 $s_t$</span>
+              </div>
+              <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.05;">
+                <span class="n-tag">核心決策網路</span>
+                <span class="n-title">Dueling Double DQN</span>
+                <span class="n-desc">受「生理獎勵 + 偏離醫師懲罰」共同訓練，輸出初始動作 $a_{\text{raw}}$</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">進入專家防護罩</span><span class="e-arrow">══▶</span></div>
+              <div class="dag-col" style="flex:1.25;">
+                <div class="g-node pit">
+                  <span class="n-tag">🛡️ 硬護欄 1｜血壓達標檢查</span>
+                  <span class="n-title">若 $\text{MAP} &gt; 65\text{ mmHg}$ ➔ 升壓藥強制清零 ($a_{\text{vaso}} \leftarrow 0$)</span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">🛡️ 硬護欄 2｜器官恢復檢查</span>
+                  <span class="n-title">若末期 $\text{SOFA} \le 3$ ➔ 靜脈輸液強制清零 ($a_{\text{fluid}} \leftarrow 0$)</span>
+                </div>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">最終合規臨床處方輸出</span>
+                <span class="n-title">$a_{\text{WD3QNE}} = \text{SafetyShield}\big(\arg\max_a Q(s_t, a)\big)$</span>
+                <span class="n-desc">確保輸出的每一筆建議皆符合拯救敗血症運動（SSC）生理底線！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 27: P08 Part 3/3 -->
+    <section class="slide" data-chapter="10">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 08 (PART 3/3) ｜ 97.81% SURVIVAL TABLE & OPE SELF-SCORING INFLATION CAUSAL DAG</div>
+          <h2 class="slide-title">[P08-3/3] Wu et al. (CMPB 2023)：預估存活率 $97.81\%$ 消融表與「OPE 自評膨脹」因果破解</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">🔥 全簡報最經典教學陷阱：為什麼預估存活率會高達 97.81%？</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 漸進消融實驗（Ablation Study）：預期價值與預估存活率表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>比較策略 / 消融模型</th>
+                <th>測試集預估存活率</th>
+                <th>表面結論 vs. 統計真相</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Clinician Behavior ($\pi_b$)</strong></td>
+                <td><strong>86.52%</strong> (死亡率 13.48%)</td>
+                <td>MIMIC-III 測試集真實歷史存活率（含大量輕症與少數重症）。</td>
+              </tr>
+              <tr>
+                <td><strong>2. Baseline D3QN (無專家規則)</strong></td>
+                <td><strong>92.04%</strong></td>
+                <td>純數據驅動策略之 WIS 換算存活率。</td>
+              </tr>
+              <tr>
+                <td><strong>3. D3QN + 偏離醫師處方懲罰</strong></td>
+                <td><strong>96.15%</strong></td>
+                <td>加入行為相似約束後，WIS 分數與預估存活率大幅跳升！</td>
+              </tr>
+              <tr class="pitfall-row">
+                <td><strong>4. 完整 WD3QNE (含三大專家機制) ⚠️</strong></td>
+                <td><strong>97.81% (死亡率僅 2.19%？)</strong></td>
+                <td><strong>臨床上敗血症不可能有 97.81% 存活率！這是 OPE 權重篩選造成的統計海市蜃樓！</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:8px 11px;">
+            <div style="font-size:0.76rem; font-weight:800; color:var(--pit-text);">🔍 汪博士帶你破案：97.81% 存活率是怎麼「算」出來的？</div>
+            <p style="font-size:0.73rem; color:var(--ink-sub); line-height:1.4;">
+              在離線評估 WIS 中，只有當「AI 建議動作 == 醫師實際動作」時，該病患軌跡才能保留非零權重 $\rho_{1:T} &gt; 0$。當 WD3QNE 強制規定「$\text{MAP}&gt;65$ 不給升壓藥、$\text{SOFA}\le 3$ 不給輸液」，它就<strong>100% 完美匹配了所有不給藥就自己康復的輕症存活病患</strong>，卻把醫師狂給藥搶救的重症死亡病患權重歸零剔除了！
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🔴 「硬性清零護欄 ＋ WIS 重要性抽樣」製造 $97.81\%$ 存活率海市蜃樓之因果圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>How Safety Shields + WIS Weight Filtering Create the 97.81% Survival Mirage</span><span>Causal Pitfall #3</span></div>
+            <div class="dag-col">
+              <div class="g-node rew">
+                <span class="n-tag">模型設計</span>
+                <span class="n-title">WD3QNE 強制規定：$\text{MAP}&gt;65 \implies a_{\text{vaso}}=0$；末期 $\text{SOFA}\le 3 \implies a_{\text{fluid}}=0$</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">進入測試集計算 WIS 權重 $\rho_{1:T}$</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs">
+                  <span class="n-tag">🟢 輕症穩定亞群（原本存活率 ~98%）</span>
+                  <span class="n-title">醫師實際處方也是 $(0,0)$！</span>
+                  <span class="n-desc">$\implies a_{\text{WD3QNE}} == a_{\text{Doc}}$<br/><strong>權重 $\rho_{1:T}$ 完全保留，主導 WIS 分母與分子！</strong></span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">🔴 重症惡化死亡亞群（死亡率極高）</span>
+                  <span class="n-title">醫師開立高劑量搶救藥 $\neq a_{\text{WD3QNE}}$</span>
+                  <span class="n-desc">$\implies$ 只要一步不一致，<strong>連乘權重 $\rho_{1:T} \to 0$，整筆死亡案例從評估分母中消失！</strong></span>
+                </div>
+              </div>
+              <div class="g-node pit">
+                <span class="n-tag">✖ 統計海市蜃樓結論</span>
+                <span class="n-title">WIS 算出來的 $97.81\%$ 其實是「被篩選留下來的輕症存活者比例」，而非 AI 救活了重症病患！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_04_thinking_magnifying_glass.jpg" alt="汪博士放大鏡" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #8）</div>
+          <div>
+            <strong>課堂震撼教育首選</strong>：把這篇論文交給學生與 LLM，看誰先發現「<strong>預估存活率 $97.81\%$ 違背重症醫學常識</strong>」！這能完美教會學生：在離線強化學習（Offline RL）中，<strong>修改策略使其只在輕症狀態與醫師一致，就能在不救活任何一個重症病人的情況下，把 WIS 離線評估分數刷到將近 100 分！</strong>（這正是為什麼下一篇 Choi 2024 決定把輕症全部剔除！）
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         PAPER 09: Choi et al. (Artificial Intelligence in Medicine 2024) — Slides 28, 29, 30
+         ===================================================================== -->
+    <section class="slide" data-chapter="11">
+      <div class="graph-breadcrumb">
+        <span class="gb-label">🗺️ 圖譜定位</span>
+        <span class="gb-node" onclick="goToSlide(24)">[P01–P08 (混入大量輕症患者稀釋風險 + 忽略 DNR 醫囑)]</span>
+        <span class="gb-edge">──(突破：鎖定中重度休克 + 79 特徵 + Shapley 解釋 + 揭露 DNR 反向因果)──▶</span>
+        <span class="gb-curr">★ P09｜Choi et al. (Artif Intell Med 2024 — HIGHLIGHT)</span>
+      </div>
+
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 09 (PART 1/3) ｜ MILD SEPSIS DILUTION BIAS & HIGHLIGHT SEVERE COHORT FUNNEL DAG</div>
+          <h2 class="slide-title">[P09-1/3] Choi et al. (2024) HIGHLIGHT：排除輕症稀釋假象與中重度休克雙隊列篩選圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">MIMIC-III 重症 N = 4,124</span>
+          <span class="pill-tag pill-act">eICU 重症 N = 3,815</span>
+          <span class="pill-tag pill-mod">79 維高密度特徵</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h pit">🔴 為什麼前 8 篇論文（P01–P08）納入全體 `SOFA ≥ 2` 病患會造成嚴重偏差？</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>輕症稀釋效應（Mild Case Dilution）掩蓋了真正需要輸液與升壓滴定的休克族群</span><span>Cohort Dilution DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">前人盲點 1｜Sepsis-3 (SOFA ≥ 2) 門檻過寬</span>
+                <span class="n-title">在 MIMIC-III 近 2 萬名 Sepsis-3 病患中，超過 60%~70% 血壓正常、從未使用升壓藥</span>
+                <span class="n-desc">這些輕症病患只需抗生素與基礎點滴即可出院（死亡率 $&lt;5\%$）。</span>
+              </div>
+              <div class="g-edge bias"><span class="e-label">導致模型學到懶惰策略</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">前人盲點 2｜輕症樣本主導梯度與 OPE 評估</span>
+                <span class="n-title">模型只要無腦輸出 <code>Action (0,0)</code>，就能在輕症佔多數的測試集拿到 $90\%+$ 的漂亮預估存活率！</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">P09 HIGHLIGHT 破局設計</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node obs">
+                <span class="n-tag">🟢 嚴格鎖定「中重度敗血症／敗血性休克（Moderate-to-Severe Sepsis）」</span>
+                <span class="n-title">剔除單純輕症，只納入真正面臨「輸液過載 vs. 升壓不足」生死抉擇的高風險重症群！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟢 HIGHLIGHT 雙資料庫（MIMIC-III &amp; eICU）中重度休克篩選漏斗圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Moderate-to-Severe Sepsis Dual-Cohort Funnel (79 Features)</span><span>High Mortality Subcohort</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">嚴格重症收案條件</span>
+                <span class="n-title">符合 Sepsis-3 且合併：血乳酸 $\text{Lactate} &gt; 2\text{ mmol/L}$ 或需升壓藥維持 $\text{MAP} \ge 65\text{ mmHg}$，伴隨顯著器官衰竭</span>
+                <span class="n-desc">擴充特徵空間至 <strong>79 維臨床變數</strong>（涵蓋完整血液氣體、凝血、累積液體平衡、呼吸器參數與動態趨勢）。</span>
+              </div>
+              <div class="g-edge data"><span class="e-label">雙中心獨立訓練與跨院外部驗證</span><span class="e-arrow">──▶</span></div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs">
+                  <span class="n-tag">🟢 MIMIC-III 重症訓練/驗證隊列</span>
+                  <span class="n-title">N = 4,124 名重症患者</span>
+                  <span class="n-desc">真實院內死亡率高達 <strong>28.5%</strong>（遠高於前人全體隊列之 ~14%）。</span>
+                </div>
+                <div class="g-node act">
+                  <span class="n-tag">🔵 eICU 跨院外部測試隊列</span>
+                  <span class="n-title">N = 3,815 名重症患者</span>
+                  <span class="n-desc">真實院內死亡率高達 <strong>24.1%</strong>，用於檢驗跨院泛化表現。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 29: P09 Part 2/3 -->
+    <section class="slide" data-chapter="11">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 09 (PART 2/3) ｜ DUAL OVERLOAD PENALTY REWARD & DEEP SHAPLEY ATTRIBUTION DAG</div>
+          <h2 class="slide-title">[P09-2/3] Choi et al. (2024)：雙向生理過載懲罰獎勵與 Deep SHAP 可解釋歸因架構圖</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-rew">懲罰 CVP &gt; 12 液體過載 &amp; MAP &gt; 85 過度升壓</span>
+          <span class="pill-tag pill-act">Deep Shapley 特徵歸因</span>
+        </div>
+      </div>
+
+      <div class="grid-right-wide">
+        <div class="washi-card">
+          <div class="card-h rew">🟣 HIGHLIGHT 獎勵函數與可解釋性設計</div>
+          <div class="mdp-list">
+            <div class="mdp-item">
+              <div class="mdp-sym">S</div>
+              <div><strong>79 維高解析度狀態空間</strong>：除了常規 48 特徵外，納入累積液體淨平衡（Fluid Balance）、中心靜脈壓（CVP）、體重變化率與多重器官趨勢。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--rew-border);">R1</div>
+              <div><strong>防範液體過載懲罰（Fluid Overload Penalty）</strong>：當病患 $\text{CVP} &gt; 12\text{ mmHg}$ 或體重較入院增加 $&gt;5\%$（已有組織水腫跡象）仍給予高量輸液時，施加顯著負向懲罰。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--pit-border);">R2</div>
+              <div><strong>防範升壓藥過量懲罰（Vasopressor Overload Penalty）</strong>：當 $\text{MAP} &gt; 85\text{ mmHg}$ 仍給予高劑量升壓藥時施加負向懲罰，避免過度血管收縮造成器官缺血。</div>
+            </div>
+            <div class="mdp-item">
+              <div class="mdp-sym" style="background:var(--act-border);">φ</div>
+              <div><strong>Deep SHAP（Shapley Additive Explanations）</strong>：為每一個 4h 處方決策計算 79 項特徵的邊際貢獻值 $\phi_i$，讓醫師看見「為何此刻建議升壓」。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h">🟠 79 維特徵 DDDQN ＋ 雙向生理過載懲罰 ＋ Deep SHAP 解釋閉環圖（Architecture DAG）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>HIGHLIGHT Architecture: Domain-Constrained DDDQN + Shapley Attribution</span><span>HIGHLIGHT DAG</span></div>
+            <div class="dag-row">
+              <div class="g-node obs" style="flex:0.9;">
+                <span class="n-tag">高維重症輸入</span>
+                <span class="n-title">79 維臨床特徵 $s_t$</span>
+                <span class="n-desc">聚焦中重度休克病患</span>
+              </div>
+              <div class="g-edge data"><span class="e-arrow">──▶</span></div>
+              <div class="g-node mod" style="flex:1.05;">
+                <span class="n-tag">決策主幹</span>
+                <span class="n-title">HIGHLIGHT (Dueling DDQN)</span>
+                <span class="n-desc">學習 $5 \times 5$ 輸液與升壓藥矩陣之 $Q(s,a)$</span>
+              </div>
+              <div class="g-edge reward"><span class="e-label">雙向安全獎勵約束</span><span class="e-arrow">-.-></span></div>
+              <div class="dag-col" style="flex:1.3;">
+                <div class="g-node rew">
+                  <span class="n-tag">生理改善主獎勵</span>
+                  <span class="n-title">終端存活 + $\Delta\text{SOFA}$ + $\Delta\text{Lactate}$ + $\text{MAP} \in [65, 85]$</span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">雙向過載懲罰項</span>
+                  <span class="n-title">懲罰「$\text{CVP}&gt;12$ 仍狂輸液」與「$\text{MAP}&gt;85$ 仍催升壓藥」</span>
+                </div>
+              </div>
+            </div>
+            <div class="dag-row" style="margin-top:4px;">
+              <div class="g-node act">
+                <span class="n-tag">臨床可解釋性輸出層 (Explainable AI Interface)</span>
+                <span class="n-title">Deep SHAP 拆解單步決策依據：$\hat{Q}(s_t, a^*) = \phi_0 + \sum_{j=1}^{79} \phi_j(s_{t,j})$</span>
+                <span class="n-desc">確認驅動 AI 處方的核心特徵為：<strong>過往升壓藥劑量、MAP、血乳酸（Lactate）、尿量、CVP 與血小板計數</strong>。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 30: P09 Part 3/3 -->
+    <section class="slide" data-chapter="11">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">PAPER 09 (PART 3/3) ｜ CROSS-HOSPITAL RESULTS & DNR REVERSE CAUSALITY DAG</div>
+          <h2 class="slide-title">[P09-3/3] Choi et al. (2024)：跨院重症驗證數據與「DNR 放棄急救醫囑反向因果陷阱」圖解</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-act">MIMIC 28.5%➔14.2% ｜ eICU 24.1%➔16.8%</span>
+          <span class="pill-tag pill-pit">⚠️ 核心教學陷阱：DNR 反向因果</span>
+        </div>
+      </div>
+
+      <div class="grid-2col" style="flex:1;">
+        <div class="washi-card">
+          <div class="card-h act">📊 中重度休克雙隊列（MIMIC-III &amp; eICU）離線評估預估死亡率表</div>
+          <table class="jp-table">
+            <thead>
+              <tr>
+                <th>評估隊列（僅含中重度敗血症）</th>
+                <th>臨床醫師實際死亡率</th>
+                <th>HIGHLIGHT 預估死亡率</th>
+                <th>處方行為關鍵改變</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="highlight-row">
+                <td><strong>1. MIMIC-III 重症測試集<br/>(N = 4,124)</strong></td>
+                <td><strong>28.5%</strong></td>
+                <td><strong>14.2%</strong><br/>(相對風險降低 ~50%)</td>
+                <td>提早啟動適度升壓藥支持，並在 CVP 升高時果斷收斂輸液量。</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>2. eICU 跨院外部測試集<br/>(N = 3,815)</strong></td>
+                <td><strong>24.1%</strong></td>
+                <td><strong>16.8%</strong><br/>(跨院穩健下降 7.3%)</td>
+                <td>在未參與訓練的多中心重症群中，依然展現一致的限液與早期升壓保護趨勢。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="washi-card soft" style="margin-top:4px; padding:8px 11px;">
+            <div style="font-size:0.77rem; font-weight:800; color:var(--pit-text);">📌 作者在 Discussion 揭露的關鍵臨床洞察：為什麼醫師會在病人死前突然「停止升壓藥」？</div>
+            <p style="font-size:0.73rem; color:var(--ink-sub); line-height:1.4;">
+              在 ICU 中，當病患多重器官衰竭不可逆時，家屬會簽署 <strong>DNR（Do-Not-Resuscitate）或撤除維生治療（Comfort Care / Withdrawal of Life Support）</strong>，醫師隨即停止升壓藥與輸液，病患於數小時內過世。若資料庫沒標註這一刻，AI 會發生什麼災難？請看右圖！
+            </p>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h pit">🔴 臨終撤除維生治療（DNR / Comfort Care）造成的「反向因果陷阱」有向圖</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Reverse Causality from Unrecorded Withdrawal of Life-Sustaining Therapy</span><span>Causal Pitfall #4</span></div>
+            <div class="dag-col">
+              <div class="g-node pit">
+                <span class="n-tag">真實臨床因果起點</span>
+                <span class="n-title">病患進入不可逆臨終多重器官衰竭 ➔ 家屬與醫療團隊達成共識簽署 DNR / 撤除維生醫療</span>
+              </div>
+              <div class="dag-row" style="width:100%; align-items:stretch;">
+                <div class="g-node obs">
+                  <span class="n-tag">醫療行為結果 (Effect 1)</span>
+                  <span class="n-title">醫師主動調降或停止升壓藥與輸液</span>
+                  <span class="n-desc">在電子病歷數值表中呈現：<code>Action 突然由高劑量變為 (0,0)</code></span>
+                </div>
+                <div class="g-node pit">
+                  <span class="n-tag">自然病程結果 (Effect 2)</span>
+                  <span class="n-title">病患於數小時後安詳過世</span>
+                  <span class="n-desc">在電子病歷數值表中呈現：<code>Terminal Reward = -15 / -100</code></span>
+                </div>
+              </div>
+              <div class="g-edge bias"><span class="e-label">✖ 缺乏 DNR 時間戳記的 RL 模型發生「倒果為因（Reverse Causality）」</span><span class="e-arrow">✖──▶</span></div>
+              <div class="g-node pit">
+                <span class="n-tag">🔴 AI 的錯誤因果推論</span>
+                <span class="n-title">AI 誤以為：「是因為醫師把升壓藥停掉，才害死這個重症病人的！」</span>
+                <span class="n-desc">進而在所有臨終狀態下盲目建議「繼續狂催最高劑量升壓藥」，並將此列為「如果聽 AI 的話繼續給藥病人就不會死」的虛假效益！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_02_explaining_pointer.jpg" alt="汪博士講解" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🐕 汪博士方法學批判 ＆ 🎓 LLM 醫療 AI 教學注意事項（Prompt 查核點 #9）</div>
+          <div>
+            <strong>醫療 AI 倫理與因果必修課</strong>：真實世界是「<strong>因為確定救不回來（臨終安寧），所以停藥</strong>」，但沒有因果模型的 AI 看到時序上是「先停藥、後死亡」，就會學成「<strong>因為停藥，所以死亡</strong>」！教學時請務必讓學生檢查任何 ICU 論文的 Exclusion Criteria 是否明確排除了 <code>Comfort Care / Withdrawal of Care / DNR</code> 階段的資料。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         MODULE C: 跨篇綜合收斂與隨堂測驗 — Slides 31, 32, 33, 34
+         ===================================================================== -->
+    <section class="slide" data-chapter="12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">MODULE C (PART 1/4) ｜ 9-PAPER MASTER SYNTHESIS MATRIX</div>
+          <h2 class="slide-title">[全景對照總表] 2017–2024 九篇敗血症強化學習論文「狀態 × 動作 × 獎勵 × OPE × 關鍵限制」矩陣</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">點擊任一列可直接跳回該篇論文第 1 頁</span>
+        </div>
+      </div>
+
+      <div class="washi-card" style="flex:1; justify-content:center;">
+        <table class="jp-table" style="font-size:0.71rem;">
+          <thead>
+            <tr>
+              <th>論文 (點擊跳轉)</th>
+              <th>資料庫與樣本數 $N$</th>
+              <th>狀態表徵 $\mathcal{S}$</th>
+              <th>動作空間 $\mathcal{A}$</th>
+              <th>獎勵函數 $R$ 設計</th>
+              <th>RL 核心演算法</th>
+              <th>離線評估 OPE 指標與數據</th>
+              <th>汪博士點出之核心方法學陷阱</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="cursor:pointer;" onclick="goToSlide(3)">
+              <td><strong>P01｜Raghu (MLHC'17)</strong></td>
+              <td>MIMIC-III ($17,898$)</td>
+              <td>48 維連續 + Sparse DAE</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>終端 $\pm 15$ + $\Delta\text{SOFA}$ + $\tanh(\Delta\text{Lac})$</td>
+              <td>Dueling DDQN</td>
+              <td>Ablation Q 值 + U 型死亡率曲線</td>
+              <td>🔴 U 型曲線背後的<strong>適應症混淆</strong></td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(6)">
+              <td><strong>P02｜Raghu (NIPS'17)</strong></td>
+              <td>MIMIC-III ($17,898$)</td>
+              <td>48 維連續 (SOFA 三分層)</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>密集生理塑形 ($c_0, c_1, c_2$) + $\pm 15$</td>
+              <td>Dueling DDQN</td>
+              <td>WDR；中 SOFA 預估死亡率 $4.6\%$</td>
+              <td>🔴 重症群集中選 <code>Action (0,0)</code> <strong>獎勵駭客</strong></td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(9)">
+              <td><strong>P03｜Komorowski (NatMed'18)</strong></td>
+              <td>MIMIC ($17,083$) + eICU ($79,073$)</td>
+              <td>K-means $750$ 離散狀態</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>純終端 90 天/院內生死 ($\pm 100$)</td>
+              <td>500× Bootstrap Policy Iteration</td>
+              <td>WIS 99th 百分位；升壓藥 $30\%$ vs $17\%$</td>
+              <td>🔴 離散分群喪失時序趨勢、WIS 高分偏好罕見軌跡</td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(12)">
+              <td><strong>P04｜Peng (MLHC'18)</strong></td>
+              <td>MIMIC-III ($15,583$)</td>
+              <td>LSTM Autoencoder (32維歷史)</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>終端生死 + 生理獎勵</td>
+              <td>MoE (Kernel 近鄰 + Dueling DDQN)</td>
+              <td>1,000× Bootstrap WIS (MoE 最高)</td>
+              <td>🟠 以最大化 WIS 訓練 Gating 易過擬合評估指標</td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(15)">
+              <td><strong>P05｜Nanayakkara (NatME'22)</strong></td>
+              <td>MIMIC ($20,858$) + eICU ($23,607$)</td>
+              <td>BMDN 7 大心血管參數 + 雙不確定性</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>終端生死 + 生理穩定獎勵</td>
+              <td>Uncertainty-Aware D3QN</td>
+              <td>跨院 WDR 提升；量化認知/隨機不確定性</td>
+              <td>🟠 簡化心血管微分方程在極端共病之參數可識別性</td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(18)">
+              <td><strong>P06｜Yu (BSPC'23)</strong></td>
+              <td>MIMIC-III ($19,903$)</td>
+              <td>47 維 + DIRL 多尺度交互摺積</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>終端 $\pm 15$ + $\Delta\text{SOFA}$ + $\Delta\text{Lac}$ + $\Delta\text{MAP}$</td>
+              <td>MT-Dueling DDQN ($V_1+V_2+A$)</td>
+              <td>提出 <strong>DWDR</strong> (最高價值 $11.5318$)</td>
+              <td>🔴 DWDR 拿掉連乘並開根號，<strong>以引入統計偏誤換取低變異數</strong></td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(21)">
+              <td><strong>P07｜Lin (DH'23)</strong></td>
+              <td>MIMIC-III ($13,930$)</td>
+              <td>46 維連續狀態</td>
+              <td><strong>二維連續劑量 $\mathbb{R}_+^2$</strong></td>
+              <td>終端生死 + SOFA/Lactate/MAP 塑形</td>
+              <td>DDPG Actor-Critic + OU 雜訊</td>
+              <td>模擬器評估：高 SOFA 死亡率 $52.5\% \to 29.6\%$</td>
+              <td>🔴 用神經網路模擬器自評產生 <strong>Model Exploitation 樂觀偏誤</strong></td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(24)">
+              <td><strong>P08｜Wu (CMPB'23)</strong></td>
+              <td>MIMIC-III ($20,943$)</td>
+              <td>45 維連續狀態</td>
+              <td>$5 \times 5$ + 硬性護欄清零</td>
+              <td>生理獎勵 － 偏離醫師懲罰</td>
+              <td>WD3QNE (雙重優先回放 + 專家規則)</td>
+              <td>WIS 預估存活率高達 <strong>$97.81\%$</strong></td>
+              <td>🔴 <strong>經典陷阱</strong>：硬護欄匹配輕症並過濾重症死亡，造成存活率虛高</td>
+            </tr>
+            <tr style="cursor:pointer;" onclick="goToSlide(27)">
+              <td><strong>P09｜Choi (AIM'24)</strong></td>
+              <td>MIMIC ($4,124$) + eICU ($3,815$) 重症</td>
+              <td><strong>79 維高密度特徵</strong> (鎖定中重度)</td>
+              <td>$5 \times 5$ 離散</td>
+              <td>生理改善 － CVP 液體過載 － MAP 過度升壓</td>
+              <td>HIGHLIGHT (DDDQN + Deep SHAP)</td>
+              <td>重症死亡率 MIMIC $28.5\% \to 14.2\%$；eICU $24.1\% \to 16.8\%$</td>
+              <td>🔴 揭露 <strong>DNR / 撤除維生治療造成的「停藥➔死亡」反向因果</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SLIDE 32: 四大因果與評估陷阱總網路圖 (SCM) -->
+    <section class="slide" data-chapter="12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">MODULE C (PART 2/4) ｜ UNIFIED STRUCTURAL CAUSAL MODEL (SCM) OF 4 OFFLINE RL PITFALLS</div>
+          <h2 class="slide-title">[方法學核心總結] 敗血症離線強化學習「四大因果與評估陷阱」整合結構因果圖（SCM）</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-pit">批判性閱讀醫療 AI 論文的終極防禦圖譜</span>
+        </div>
+      </div>
+
+      <div class="washi-card" style="flex:1;">
+        <div class="dag-canvas">
+          <div class="dag-title"><span>Unified Structural Causal Graph: How Clinical Confounders & OPE Mechanics Distort Offline RL</span><span>Master Causal DAG</span></div>
+
+          <!-- 第一層：潛在未觀測混淆變數 -->
+          <div class="dag-row">
+            <div class="g-node pit" style="flex:1;">
+              <span class="n-tag">🔴 未觀測混淆源 A (Unobserved Severity $U_{\text{sev}}$)</span>
+              <span class="n-title">真實微循環衰竭、難治型休克與器官不可逆損傷</span>
+              <span class="n-desc">同時促使「醫師開立極端高劑量搶救藥」並直接導致「病患死亡」</span>
+            </div>
+            <div class="g-node pit" style="flex:1;">
+              <span class="n-tag">🔴 未觀測混淆源 B (End-of-Life Care $U_{\text{DNR}}$)</span>
+              <span class="n-title">家屬簽署 DNR / 撤除維生治療（Comfort Care）</span>
+              <span class="n-desc">同時促使「醫師將升壓藥與輸液停用歸零」並伴隨「病患隨即過世」</span>
+            </div>
+          </div>
+
+          <div class="dag-row">
+            <div class="g-edge bias"><span class="e-label">共同混淆干擾 EHR 觀測軌跡 $(s_t, a_t, r_t, Y)$</span><span class="e-arrow">⬇ ✖ ⬇</span></div>
+          </div>
+
+          <!-- 第二層：四大失真陷阱 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="g-node mod">
+              <span class="n-tag">陷阱 1｜U 型曲線適應症混淆 (P01, P03, P08)</span>
+              <span class="n-title">把「瀕死搶救無效」誤判為「偏離 AI 處方害死病人」</span>
+              <span class="n-desc">• <strong>現象</strong>：$|a_{\text{Doc}} - a_{\text{AI}}|$ 越大死亡率越高。<br/>• <strong>真相</strong>：谷底是輕症雙方皆給 0；兩端是重症搶救無效。</span>
+            </div>
+            <div class="g-node mod">
+              <span class="n-tag">陷阱 2｜中重度休克 Action (0,0) 獎勵駭客 (P02, P06)</span>
+              <span class="n-title">把「輕症不給藥自然好轉」誤學為「重症不給藥能拿高分」</span>
+              <span class="n-desc">• <strong>現象</strong>：重症休克時 AI 卻最愛推薦 `(0,0)` 完全不給藥。<br/>• <strong>真相</strong>：給藥常伴隨重症短期 $\Delta\text{SOFA}$ 惡化，AI 為逃避懲罰選擇不作為。</span>
+            </div>
+            <div class="g-node pit">
+              <span class="n-tag">陷阱 3｜OPE 權重篩選與模擬器自評虛高 (P06, P07, P08)</span>
+              <span class="n-title">製造「預估存活率 97.81%」或「重症死亡率減半」的海市蜃樓</span>
+              <span class="n-desc">• <strong>現象</strong>：加入專家護欄或模擬器後預估存活率逼近 98%。<br/>• <strong>真相</strong>：WIS 把與 AI 處方不同的重症死亡軌跡權重歸零剔除，只算輕症存活者！</span>
+            </div>
+            <div class="g-node pit">
+              <span class="n-tag">陷阱 4｜DNR 撤除維生治療之反向因果 (P09)</span>
+              <span class="n-title">把「因為臨終所以停藥」倒果為因成「因為停藥所以死亡」</span>
+              <span class="n-desc">• <strong>現象</strong>：AI 在臨終狀態強烈建議繼續狂催高劑量升壓藥。<br/>• <strong>真相</strong>：未排除 Comfort Care 紀錄，使模型誤以為停藥導致死亡。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 33: 未來研究方向圖譜與 Karpathy LLM Wiki 複利閉環 -->
+    <section class="slide" data-chapter="12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">MODULE C (PART 3/4) ｜ FUTURE RESEARCH GRAPH & KARPATHY LLM WIKI COMPOUNDING LOOP</div>
+          <h2 class="slide-title">[未來研究藍圖] 從 9 篇文獻缺口推導出的 4 大新研究方向 ＆ LLM Wiki 知識複利閉環</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-obs">Sepsis LLM Wiki 知識庫持續演進</span>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="washi-card">
+          <div class="card-h">🟢 從現有 9 篇文獻限制推導出的「4 大未來研究突破點 Graph」</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>Next-Generation Sepsis RL Research Roadmap</span><span>Future Directions DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">方向 1｜打破固定 4h 時間步 ➔ 多尺度連續時間決策 (Continuous-Time / Semi-MDP)</span>
+                <span class="n-title">真實 ICU 升壓藥是每 15–30 分鐘滴定一次，4 小時平均會抹平急性低血壓搶救細節</span>
+                <span class="n-desc">結合 Neural ODE 或不規則時間步 Transformer，實現分鐘級升壓滴定與小時級液體管理。</span>
+              </div>
+              <div class="g-node rew">
+                <span class="n-tag">方向 2｜顯式因果反事實強化學習 (Causal Offline RL &amp; DNR De-confounding)</span>
+                <span class="n-title">在狀態轉移與獎勵估計中顯式建模潛在混淆因子（休克表型、DNR 意圖）</span>
+                <span class="n-desc">結合工具變數（Instrumental Variables）或近端因果推論（Proximal Causal Inference）消除適應症混淆。</span>
+              </div>
+              <div class="g-node mod">
+                <span class="n-tag">方向 3｜多模態臨床表徵融合 (Multi-Modal EHR + Clinical Notes + Echo)</span>
+                <span class="n-title">利用 LLM 萃取護理紀錄、醫師交班筆記與床邊心臟超音波報告中的非結構化血流動力學線索</span>
+              </div>
+              <div class="g-node act">
+                <span class="n-tag">方向 4｜前瞻性「影子模式（Shadow Mode）」臨床驗證與人機協同介面</span>
+                <span class="n-title">超越回溯性 WIS/WDR，在醫院資訊系統背景即時運行，評估醫師對 Shapley 解釋與不確定性閘門之信任度</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="washi-card">
+          <div class="card-h mod">🟠 Karpathy LLM Wiki 知識庫複利演進閉環圖（Compounding Knowledge Loop）</div>
+          <div class="dag-canvas">
+            <div class="dag-title"><span>How Our Sepsis LLM Wiki Compounds Knowledge Over Time</span><span>LLM Wiki Workflow DAG</span></div>
+            <div class="dag-col">
+              <div class="g-node obs">
+                <span class="n-tag">Layer 1｜Raw Sources (不可變原始真相層)</span>
+                <span class="n-title"><code>raw/papers/</code> 保存 9 篇原始英文 PDF 論文與臨床指引</span>
+                <span class="n-desc">LLM 只讀不改，確保所有樣本數 $N$、公式與 OPE 數據皆可溯源核對。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">Ingest 結構化萃取與交叉連結</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node mod">
+                <span class="n-tag">Layer 2｜Persistent Wiki (持續複利成長的知識圖譜層)</span>
+                <span class="n-title"><code>wiki/papers/</code> (9篇單篇深析) ↔ <code>wiki/synthesis/</code> (證據矩陣與教學守則)</span>
+                <span class="n-desc">每讀進一篇新論文，自動更新跨篇比較表、術語表、生物標記頁與方法學批判。</span>
+              </div>
+              <div class="g-edge causal"><span class="e-label">Query &amp; Lint 知識編譯輸出</span><span class="e-arrow">══▶</span></div>
+              <div class="g-node act">
+                <span class="n-tag">Layer 3｜Compounding Outputs (高價值教學與研究產出)</span>
+                <span class="n-title">產出本份 34 頁三層 Graph 互動教學簡報、發現研究空白並回寫入 <code>wiki/ideas/</code></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 34: 汪博士隨堂互動測驗 (4 題翻卡挑戰) -->
+    <section class="slide" data-chapter="12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-kicker">MODULE C (PART 4/4) ｜ INTERACTIVE CLASSROOM FLIP-CARD QUIZ</div>
+          <h2 class="slide-title">[汪博士隨堂互動測驗] 4 道「醫療 AI 與 LLM 讀論文盲點」翻卡挑戰（點擊卡片揭曉正解）</h2>
+        </div>
+        <div class="slide-tag-group">
+          <span class="pill-tag pill-mod">💡 點擊任一問題卡片即可翻開汪博士解析</span>
+        </div>
+      </div>
+
+      <div class="quiz-grid">
+        <div class="quiz-card" onclick="this.classList.toggle('revealed')">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span class="pill-tag pill-pit">挑戰 Q1｜對應 P01, P03 (U 型曲線陷阱)</span>
+              <span style="font-size:0.72rem; color:var(--mod-text); font-weight:700;">👆 點擊翻開解析</span>
+            </div>
+            <h3 style="font-size:0.9rem; color:var(--ink-main); line-height:1.4;">
+              當 LLM 摘要某篇論文說：「當臨床醫師給的劑量與 AI 建議一致時（U 型曲線谷底）死亡率最低，偏離越遠死亡率越高，證明聽 AI 的話能大幅救命！」請問這句推論犯了什麼因果錯誤？
+            </h3>
+            <div class="quiz-ans">
+              <strong>🐕 汪博士正解（適應症混淆 Confounding by Indication）</strong>：<br/>
+              U 型曲線谷底（劑量差 = 0）絕大多數是<strong>「醫師給 0、AI 也給 0」的輕症穩定病患</strong>，本來就不會死！而曲線兩端（醫師給極高劑量、偏離 AI 保守建議）則是<strong>瀕死難治型休克病患</strong>——是因為「病情極度惡化」同時導致了「醫師狂給搶救藥」與「最終高死亡率」，不能倒果為因說成是「偏離 AI 害死病人」！
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-card" onclick="this.classList.toggle('revealed')">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span class="pill-tag pill-rew">挑戰 Q2｜對應 P02, P09 (全零動作獎勵駭客)</span>
+              <span style="font-size:0.72rem; color:var(--mod-text); font-weight:700;">👆 點擊翻開解析</span>
+            </div>
+            <h3 style="font-size:0.9rem; color:var(--ink-main); line-height:1.4;">
+              為什麼一個在離線評估（WDR）分數很高的 Dueling DDQN 模型，面對高 SOFA 重症敗血性休克病患時，竟然可能高比例建議 `Action (0,0)`（完全不輸液也不給升壓藥）？
+            </h3>
+            <div class="quiz-ans">
+              <strong>🐕 汪博士正解（獎勵駭客與分布シフト Reward Hacking）</strong>：<br/>
+              在歷史資料中，重症病患接受高劑量升壓藥後，下一個 4h 的 SOFA 與血乳酸仍常因病程惡化而上升（得到負獎勵）；反觀資料庫中拿 <code>Action (0,0)</code> 的多是輕症穩定者（得到正獎勵）。缺乏反事實因果模型的 RL 會誤以為<strong>「只要不給藥 (0,0) 就能躲開短期 $\Delta\text{SOFA}$ 懲罰並拿到輕症的高存活價值」</strong>！
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-card" onclick="this.classList.toggle('revealed')">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span class="pill-tag pill-act">挑戰 Q3｜對應 P08 Wu 2023 (97.81% 存活率迷思)</span>
+              <span style="font-size:0.72rem; color:var(--mod-text); font-weight:700;">👆 點擊翻開解析</span>
+            </div>
+            <h3 style="font-size:0.9rem; color:var(--ink-main); line-height:1.4;">
+              Wu et al. (2023) 加入「MAP &gt; 65 強制停升壓藥、末期 SOFA ≤ 3 強制停輸液、偏離醫師處方懲罰」後，WIS 預估存活率高達 $97.81\%$。為什麼這個數字是統計假象？
+            </h3>
+            <div class="quiz-ans">
+              <strong>🐕 汪博士正解（重要性抽樣權重篩選偏誤 WIS Filtering Mirage）</strong>：<br/>
+              在 WIS 評估中，只有當 AI 動作與醫師動作一致時權重 $\rho_{1:T}$ 才不為零。強制在血壓正常與輕症時清零劑量，會讓 AI 在<strong>原本存活率就接近 98% 的輕症患者身上與醫師 100% 吻合（保留高權重）</strong>；而在醫師積極給藥搶救卻不幸死亡的重症患者身上因動作不一致使<strong>連乘權重歸零（直接從評估分母蒸發）</strong>！
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-card" onclick="this.classList.toggle('revealed')">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span class="pill-tag pill-obs">挑戰 Q4｜對應 P09 Choi 2024 (DNR 反向因果)</span>
+              <span style="font-size:0.72rem; color:var(--mod-text); font-weight:700;">👆 點擊翻開解析</span>
+            </div>
+            <h3 style="font-size:0.9rem; color:var(--ink-main); line-height:1.4;">
+              如果訓練資料沒有排除簽署 `DNR（放棄急救／撤除維生治療 Comfort Care）` 的臨終階段紀錄，會對強化學習模型造成什麼樣的反向因果誤導？
+            </h3>
+            <div class="quiz-ans">
+              <strong>🐕 汪博士正解（撤除治療之反向因果 Reverse Causality）</strong>：<br/>
+              臨床真相是「<strong>因為病患已進入不可逆臨終狀態並簽署 DNR，所以醫師停止升壓藥，隨後病患過世</strong>」。但無因果意識的 RL 模型看到時序上「先停藥 $(0,0)$ ➔ 接著死亡 $(-15)$」，就會倒果為因誤判為<strong>「是因為醫師停藥才害死病人」</strong>，進而在臨終狀態盲目建議繼續狂催最高劑量升壓藥！
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-wang-box">
+        <img src="dr_wang_05_thumbs_up_approved.jpg" alt="汪博士比讚" class="dr-wang-avatar" />
+        <div class="dr-wang-content">
+          <div class="dr-wang-title">🎉 恭喜完成 34 頁「敗血症強化學習知識圖譜（Sepsis RL Knowledge Graph）」深度研習！</div>
+          <div>
+            您可以隨時按鍵盤 <code>G</code> 鍵開啟 34 頁全覽網格，或點擊上方 <strong>🗺️ 02 論文演進圖譜</strong> 與 <strong>🧩 03 概念×陷阱圖譜</strong> 進行跨文獻互動教學演示！
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部控制列與常駐 Stage 3 視覺語意圖例 -->
+  <footer class="bottom-bar">
+    <div class="legend-inline">
+      <span>🎨 Graph 節點語意：</span>
+      <span><i class="leg-dot" style="background:var(--obs-border);"></i>🟢 臨床觀測/收案</span>
+      <span><i class="leg-dot" style="background:var(--mod-border);"></i>🟠 編碼/RL模型</span>
+      <span><i class="leg-dot" style="background:var(--act-border);"></i>🔵 處方動作/OPE評估</span>
+      <span><i class="leg-dot" style="background:var(--rew-border);"></i>🟣 獎勵塑形/專家護欄</span>
+      <span><i class="leg-dot" style="background:var(--pit-border);"></i>🔴 因果偏誤/方法學陷阱</span>
+    </div>
+    <div class="ctrl-btns">
+      <button class="ctrl-btn" onclick="prevSlide()">◀ 上一頁 (←)</button>
+      <span id="page-indicator" style="font-weight:800; min-width:95px; text-align:center; color:var(--obs-text);">Slide 01 / 34</span>
+      <button class="ctrl-btn" onclick="nextSlide()">下一頁 (→) ▶</button>
+    </div>
+  </footer>
+
+  <!-- 34 頁全覽網格彈窗 -->
+  <div id="grid-modal" class="grid-modal" onclick="if(event.target===this) toggleGridModal()">
+    <div class="grid-modal-inner">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:1.1rem; color:var(--obs-text);">田 34 頁敗血症 RL 知識圖譜投影片全覽（點擊任一頁直接跳轉）</h3>
+        <button class="ctrl-btn" onclick="toggleGridModal()">✕ 關閉 (Esc / G)</button>
+      </div>
+      <div id="grid-cards-container" class="grid-cards"></div>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('section.slide'));
+    const chapBtns = Array.from(document.querySelectorAll('.chap-btn'));
+    const pageInd = document.getElementById('page-indicator');
+    let currentIdx = 0;
+
+    function updateDeck() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentIdx);
+      });
+      const numStr = String(currentIdx + 1).padStart(2, '0');
+      pageInd.textContent = `Slide ${numStr} / ${slides.length}`;
+
+      const activeChap = parseInt(slides[currentIdx].dataset.chapter || '0', 10);
+      chapBtns.forEach((btn, bIdx) => {
+        btn.classList.toggle('active', bIdx === activeChap);
+      });
+    }
+
+    function goToSlide(idx) {
+      if (idx >= 0 && idx < slides.length) {
+        currentIdx = idx;
+        updateDeck();
+        document.getElementById('grid-modal').classList.remove('open');
+      }
+    }
+
+    function nextSlide() {
+      if (currentIdx < slides.length - 1) {
+        currentIdx++;
+        updateDeck();
+      }
+    }
+
+    function prevSlide() {
+      if (currentIdx > 0) {
+        currentIdx--;
+        updateDeck();
+      }
+    }
+
+    function toggleGridModal() {
+      document.getElementById('grid-modal').classList.toggle('open');
+    }
+
+    /* Slide 02 支線篩選互動 */
+    function filterLineage(tag, btnEl) {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      document.querySelectorAll('.paper-node-card').forEach(card => {
+        if (tag === 'all') {
+          card.classList.remove('dimmed');
+        } else {
+          const lin = (card.dataset.lineage || '').split(' ');
+          card.classList.toggle('dimmed', !lin.includes(tag));
+        }
+      });
+    }
+
+    /* Slide 03 概念維度切換互動 */
+    const conceptData = [
+      {
+        title: "📌 目前檢視：維度 1｜狀態表徵演化 S（離散群聚 vs. 深度壓縮 vs. 心血管物理模型）",
+        papers: "關聯論文：P03 (K-means 750群) ➔ P01/P02 (Sparse DAE) ➔ P04 (LSTM Autoencoder) ➔ P05 (BMDN 7大心血管參數)",
+        body: "教學查核點：要求學生比較『K-means 750 個離散狀態（忽略時序歷史且邊界跳躍）』、『LSTM Autoencoder 32 維歷史壓縮（解決非馬可夫 POMDP）』與『BMDN 逆推心搏量與周邊血管阻力（具備明確心血管生理可解釋性）』三者的優缺點。"
+      },
+      {
+        title: "📌 目前檢視：維度 2｜動作空間設計 A（5×5 分位數分箱 vs. DDPG 連續劑量微調）",
+        papers: "關聯論文：P01–P06, P08–P09 (5×5=25 離散動作) vs. P07 Lin 2023 (DDPG 二維連續動作)",
+        body: "教學查核點：5×5 離散分箱可直接使用 Dueling DDQN 與重要性抽樣評估，但存在分箱邊界跳躍與區間過寬問題；DDPG 雖能輸出精確連續劑量，卻會失去傳統 IS/WIS 評估支援而陷入『環境模擬器自評偏誤』。"
+      },
+      {
+        title: "📌 目前檢視：維度 3｜獎勵塑形 R（終端生死 vs. ΔSOFA/ΔLactate vs. 雙向過載懲罰）",
+        papers: "關聯論文：P03 (純終端 ±100) ➔ P01/P02/P06 (ΔSOFA + tanh ΔLactate) ➔ P08/P09 (專家偏離懲罰與 CVP/MAP 過載懲罰)",
+        body: "教學查核點：純終端獎勵面臨 72 小時長軌跡信用分配難題；加入 ΔSOFA 與 ΔLactate 可加速學習，但必須防範模型為規避短期指標惡化而學會 Action (0,0) 不給藥，或因加入偏離醫師懲罰而造就 OPE 分數虛高。"
+      },
+      {
+        title: "📌 目前檢視：維度 4｜離線策略評估 OPE（WIS / WDR / DWDR vs. 環境模擬器）",
+        papers: "關聯論文：P02/P03/P04 (WIS/WDR) ➔ P06 Yu 2023 (DWDR 退化權重) vs. P07 Lin 2023 (環境模擬器)",
+        body: "教學查核點：傳統連乘重要性權重 ρ_{1:T} 在 15~20 步後變異數呈指數爆炸；Yu (2023) 的 DWDR 用單步開根號 √ρ_t 壓低變異數，但犧牲了多步馬可夫無偏性（Bias-Variance Tradeoff）。"
+      },
+      {
+        title: "📌 目前檢視：維度 5｜臨床因果偏誤（U 型曲線適應症混淆 & DNR 反向因果）",
+        papers: "關聯論文：P01, P03, P08 (U 型曲線) ＆ P09 Choi 2024 (DNR 放棄急救反向因果)",
+        body: "教學查核點：在回溯性 ICU 資料中，『醫師給藥劑量』強烈受『病患瀕死惡化程度』與『DNR 撤除維生醫囑』混淆。不能把 U 型曲線兩端的高死亡率直接歸咎於醫師沒聽 AI 的話，更不能忽略臨終停藥造成的反向因果！"
+      },
+      {
+        title: "📌 目前檢視：維度 6｜獎勵駭客與自評膨脹（Action (0,0) & 97.81% 存活率海市蜃樓）",
+        papers: "關聯論文：P02 Raghu 2017 (Action 0,0) ＆ P08 Wu 2023 (97.81% 預估存活率)",
+        body: "教學查核點：訓練學生養成兩大鐵律：① 看到高 OPE 分數先檢查重症亞群的 Action Histogram 是否聚集在 (0,0)；② 看到 97.81% 這種違反醫學常識的存活率，立即檢查是否因為硬性護欄把重症死亡軌跡的權重歸零剔除了！"
+      }
+    ];
+
+    function showConceptDetail(idx) {
+      const d = conceptData[idx];
+      if (!d) return;
+      document.getElementById('cd-title').textContent = d.title;
+      document.getElementById('cd-papers').textContent = d.papers;
+      document.getElementById('cd-body').textContent = d.body;
+    }
+
+    /* 建立 34 頁全覽網格 */
+    const gridContainer = document.getElementById('grid-cards-container');
+    slides.forEach((s, idx) => {
+      const titleEl = s.querySelector('.slide-title') || s.querySelector('h1') || s.querySelector('h2');
+      const kickerEl = s.querySelector('.slide-kicker');
+      const card = document.createElement('div');
+      card.className = 'grid-item';
+      card.onclick = () => goToSlide(idx);
+      const numStr = String(idx + 1).padStart(2, '0');
+      card.innerHTML = `
+        <div style="font-weight:900; color:var(--obs-border); font-size:0.72rem; margin-bottom:2px;">Slide ${numStr} ｜ ${(kickerEl ? kickerEl.textContent.split('｜')[0] : '')}</div>
+        <div style="font-weight:700; color:var(--ink-main); line-height:1.35;">${titleEl ? titleEl.textContent : 'Slide ' + numStr}</div>
+      `;
+      gridContainer.appendChild(card);
+    });
+
+    /* 鍵盤導覽支援 */
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        toggleGridModal();
+      } else if (e.key === 'Escape') {
+        document.getElementById('grid-modal').classList.remove('open');
+      }
+    });
+
+    updateDeck();
+  </script>
+</body>
+</html>
